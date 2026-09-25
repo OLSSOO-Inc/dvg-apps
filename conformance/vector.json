@@ -1,0 +1,7 @@
+{
+  "signingSecret": "test-signing-secret",
+  "appId": "demo-order-app",
+  "callId": "1790000000.42",
+  "timestamp": 1790000000,
+  "signature": "8f5176f9494aea0ff84847a5d2a80fdac8b90de4d44633d841d4cff3b1133f9a"
+}
