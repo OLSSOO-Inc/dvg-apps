@@ -10,7 +10,9 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: '22' }
       - run: pip install -r examples/python/requirements.txt
-      - run: python -m py_compile examples/python/order_app.py
+      - run: python -m py_compile examples/python/order_app.py examples/python/slot_app.py
+      - run: for f in scenarios/*.json; do python slot_app.py --check "$f"; done
+        working-directory: examples/python
       - run: python conformance/check_python.py
       - run: npm ci
         working-directory: examples/node

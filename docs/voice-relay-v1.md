@@ -87,8 +87,8 @@ DVG → 앱   end
 |---|---|---|
 | `setup` | `version` · `callId` · `tenantId` · `orgId` · `appId` · `did` · `noticePlayed` · `caller`(조건부) · `simulated`(조건부) | 통화 시작. `caller` 는 **운영자가 설치에서 발신번호 제공을 켰을 때만** 있습니다(키 자체가 없으면 «제공하지 않음»). 🔴 **`simulated:true` 는 전화 없는 시험**(gw 1.4.16.259) — 그때는 **실제 주문을 만들지 마십시오**(실통화에서는 키가 없습니다) |
 | `said` | — | `say` 재생이 끝났다 |
-| `prompt` | `text` · `silence` · `lowConfidence` · `spokeDuringPlayback` · `heardVoice`(gw 1.4.16.261 — 소리는 있었는데 말로 인식되지 않았다 · 무응답과 «말했는데 못 알아들음» 을 가른다) · (선택지를 줬으면) `choice` · `choiceIndex` · `choiceSource` · `confirm` · `choiceAmbiguous` | `ask` 뒤 발신자가 한 말. `silence:true` 면 아무 말도 없었다. 선택지 판정은 §3-4 |
-| `error` | `code` · `message` | 지시가 잘못됐다 — `unknown_type` · `text_required` · `text_too_long`. **3번 넘으면** 통화가 사람에게 간다 |
+| `prompt` | `text` · `silence` · `lowConfidence` · `spokeDuringPlayback` · `heardVoice`(gw 1.4.16.261 — 소리는 있었는데 말로 인식되지 않았다 · 무응답과 «말했는데 못 알아들음» 을 가른다) · (선택지를 줬으면) `choice` · `choiceIndex` · `choiceSource` · `confirm` · `choiceAmbiguous` · (`expect:"address"` 였으면) `address` | `ask` 뒤 발신자가 한 말. `silence:true` 면 아무 말도 없었다. 선택지 판정은 §3-4, 주소는 §3-5 |
+| `error` | `code` · `message` | 지시가 잘못됐다 — `unknown_type` · `text_required` · `text_too_long` · `bad_choices` · `bad_expect`. **3번 넘으면** 통화가 사람에게 간다 |
 | `end` | `reason` | 세션 끝(§4 결말). 이 뒤로는 보내도 소용없습니다 |
 
 ### 3-3. 앱 → DVG
@@ -96,7 +96,7 @@ DVG → 앱   end
 | type | 필드 | 동작 |
 |---|---|---|
 | `say` | `text`(필수 · 500자 이하) · `interruptible`(선택 · gw 1.4.16.261) | 끝까지 말한다(끼어들어도 멈추지 않음) → `said`. `interruptible:true` 면 **발신자가 끼어들 때 멈춘다**(듣지는 않는다 — 이어서 `ask{text:""}` 로 듣는다). ⚠️ 복창·결제 안내처럼 **끝까지 들려야 하는 말에는 쓰지 마십시오** |
-| `ask` | `text`(선택 · 500자 이하) · `choices`(선택 · 2~6개 · 각 1~20자 · 중복 없음) | 질문을 말하고(발신자가 끼어들면 멈춤) **발신자 답을 듣는다** → `prompt`. `text` 가 비면 말없이 듣기만 한다. `choices` 가 규칙에 어긋나면 **묻지 않고** `error bad_choices` |
+| `ask` | `text`(선택 · 500자 이하) · `choices`(선택 · 2~6개 · 각 1~20자 · 중복 없음) · `expect`(선택 · `"address"`) · `label`(선택 · `expect` 와 함께 · 1~10자) | 질문을 말하고(발신자가 끼어들면 멈춤) **발신자 답을 듣는다** → `prompt`. `text` 가 비면 말없이 듣기만 한다. `choices` 가 규칙에 어긋나면 **묻지 않고** `error bad_choices`. `expect` 는 §3-5(`choices` 와 함께 쓰면 `bad_expect`) |
 | `transfer` | — | **사람에게 연결**. 🔴 번호는 지정할 수 없습니다 — 그 주문 회사에 운영자가 정한 호전환 번호로 갑니다 |
 | `hangup` | `text`(선택 · 마지막 인사) | 인사 후 통화 종료 |
 
@@ -115,6 +115,69 @@ DVG → 앱   end
 - 🔴 **초성 추정은 좁게 걸립니다** — 선택지들이 **같은 꼬리 초성**을 가질 때만(예: 선**불**/착**불**). 「네/아니요」 처럼 꼬리가 다르면 초성 추정은 **하지 않고** 정확 일치만 봅니다(그렇지 않으면 「나중에요」 가 «네» 가 됩니다).
 - ⚠️ 한 글자 선택지(「네」)는 **낱말 앞머리**에서만 인정합니다(「서초동네」 가 «네» 가 되지 않게).
 - ⚠️ **음성인식 힌트는 질문마다 바꿀 수 없습니다**(연결을 맺을 때 정해진다). 앱이 물을 선택지는 운영자에게 요청해 **앱 등록의 «음성인식 힌트 낱말»** 에 넣으십시오.
+
+### 3-5. 주소(`ask.expect:"address"`) — gw 1.4.16.265+
+
+주소를 묻는 `ask` 에 `"expect":"address"` 를 실으면 DVG 가 발신자의 답을 **시·도 / 구·군 / 동**으로 풀어 `prompt.address` 에 싣습니다.
+행정구역 사전·동 색인·장소 사전(장례식장 등)·건물명 검색과 **좁히는 질문**까지 DVG 가 맡습니다 — 앱은 행정구역 사전을 만들 필요가 없습니다.
+`label` 은 좁히는 질문에서 이 칸을 부를 이름입니다(「배달지」·「받는 곳」 — 기본 「주소」).
+
+| `address.status` | 뜻 | 앱이 할 일 |
+|---|---|---|
+| `resolved` | 3단이 정해졌다 | 복창해 확인받고 쓴다. 🔴 `verified:false` 면 **반드시** 복창(행정구역 색인에 없는 이름 — 행정동·리일 수도, 오인식일 수도) |
+| `ambiguous` | 같은 이름이 여러 곳에 있다 — `candidates` · `question` | ⭐ **`question` 을 글자 그대로** 다시 `ask`(`expect:"address"`) 하십시오. 그러면 DVG 가 기억해 둔 후보로 다음 답(「서울이요」)을 좁힙니다. `question` 이 없으면(후보가 너무 많음) 다르게 묻거나 사람에게 |
+| `partial` | 일부만 들었다 — `missing`(`sido`·`gugun`·`dong`) | 빠진 칸을 **다른 문장으로** 묻는다(같은 질문 반복 금지) |
+| `unknown` | 주소로 읽지 못했다 — `reason` | 다른 문장으로 한 번 더 묻거나 사람에게 |
+| `unavailable` | 이 설치에서 주소 풀이를 쓸 수 없다 | `text`(발화 원문)로 처리한다 |
+
+| 필드 | 뜻 |
+|---|---|
+| `sido` · `gugun` · `dong` | 정식 이름(`서울특별시` · `송파구` · `신천동`). 세종특별자치시는 `gugun` 이 없다 |
+| `detail` | 동 뒤에 들은 말(번지·층·호수) — **정규화하지 않은 발화 조각** |
+| `name` | 장소·건물 이름으로 찾았을 때 그 이름 |
+| `line` | 복창용 한 줄(`서울 송파구 신천동`) |
+| `source` | 근거 — `spoken`(발화에 다 있었다) · `dong_index` · `gugun_index` · `venue`(장소 사전) · `building`(건물명 검색) · `narrowed`(좁히는 답) |
+| `verified` | 그 조합이 **행정구역 색인에 실재**하는가 |
+| `candidates` · `question` | `ambiguous` 일 때 |
+| `missing` · `reason` | `partial` · `unknown`/`unavailable` 일 때 |
+| `coord` · `coordStatus` | 좌표(아래) |
+
+- 🔴 **DVG 는 여러 곳 중 하나를 고르지 않습니다** — 잘못 고른 주소는 기사가 다른 도시로 가는 값입니다.
+- ⚠️ **좁히기는 바로 그 질문에만** 걸립니다 — 앱이 다른 문장으로 물으면(다음 칸 등) 새 주소로 읽습니다. 무음 뒤에 같은 질문을 다시 해도 후보는 남아 있습니다.
+- ⚠️ 한 답에 두 곳(「강남에서 서초로」)이면 `unknown` + `reason:"multiple_places"` — 칸마다 따로 물으십시오.
+
+**좌표(선택)** — 앱마다 자기 좌표 체계(자체 지오코더·배차 시스템)가 있을 수 있어 **기본으로는 좌표를 싣지 않습니다.** DVG 좌표가 필요하면
+운영사에 **앱 등록의 「좌표 제공」** 을 요청하십시오. 켜진 앱에는 `resolved` 일 때 `coord:{lon, lat, source}`(WGS84 십진 도)와 `coordStatus`
+(`ok` · `ambiguous` · `unknown` · `unavailable`)가 붙습니다. ⚠️ **좌표는 동 단위**(번지 반영 없음)이고 출처(`source`)를 밝힙니다.
+못 얻으면 **좌표 없이** 주소만 갑니다 — 좌표를 필수로 쓰는 앱은 `coord` 가 없을 때의 처리를 두십시오.
+
+### 3-6. 대화 예 — 꽃 배달 한 통(JSON 전부)
+
+`→` 는 DVG 가 앱에, `←` 는 앱이 DVG 에 보내는 메시지입니다(`turn` 은 생략).
+
+```json
+→ {"type":"setup","version":1,"callId":"1790000000.42","tenantId":"…","orgId":"flower-01","appId":"flower-app","did":"07012345678","noticePlayed":true}
+← {"type":"say","text":"꽃 배달 주문을 도와드리겠습니다."}
+→ {"type":"said"}
+← {"type":"ask","text":"꽃을 어디로 보내 드릴까요?","expect":"address","label":"배달지"}
+→ {"type":"prompt","text":"신천동이요","silence":false,"lowConfidence":false,"spokeDuringPlayback":false,"heardVoice":true,
+   "address":{"status":"ambiguous","source":"dong_index",
+              "candidates":[{"sido":"경기도","gugun":"시흥시"},{"sido":"경상북도","gugun":"경산시"},{"sido":"대구광역시","gugun":"동구"},{"sido":"서울특별시","gugun":"송파구"},{"sido":"울산광역시","gugun":"북구"}],
+              "question":"신천동이 여러 곳입니다. 배달지가 경기인지, 경북인지, 대구인지, 서울인지, 울산인지 말씀해 주세요."}}
+← {"type":"ask","text":"신천동이 여러 곳입니다. 배달지가 경기인지, 경북인지, 대구인지, 서울인지, 울산인지 말씀해 주세요.","expect":"address","label":"배달지"}
+→ {"type":"prompt","text":"서울이요","silence":false,"lowConfidence":false,"spokeDuringPlayback":false,"heardVoice":true,
+   "address":{"status":"resolved","sido":"서울특별시","gugun":"송파구","dong":"신천동","line":"서울 송파구 신천동","source":"narrowed","verified":true}}
+← {"type":"ask","text":"꽃다발인지, 꽃바구니인지, 화환인지 말씀해 주세요.","choices":["꽃다발","꽃바구니","화환"]}
+→ {"type":"prompt","text":"꽃바구니로 할게요","silence":false,"lowConfidence":false,"spokeDuringPlayback":false,"heardVoice":true,"choice":"꽃바구니","choiceIndex":1,"choiceSource":"exact"}
+← {"type":"ask","text":"배달지 서울 송파구 신천동. 상품 꽃바구니. 맞으면 「네」. 틀리면 「아니요」.","choices":["네","아니요"]}
+→ {"type":"prompt","text":"네","silence":false,"lowConfidence":false,"spokeDuringPlayback":false,"heardVoice":true,"choice":"네","choiceIndex":0,"choiceSource":"exact"}
+← {"type":"hangup","text":"주문이 접수되었습니다. 감사합니다."}
+→ {"type":"end","reason":"completed"}
+```
+
+⭐ 이 대화는 [예제 슬롯 엔진](../examples/python/slot_app.py)의 [꽃 배달 시나리오](../examples/python/scenarios/flower.json)가 **DVG 실제 relay·주소 풀이 코드**와
+실제로 주고받은 메시지입니다(발화는 글자로 넣은 시험 · 줄을 나누고 `turn` 을 뺐습니다). ⚠️ `setup` 은 실통화 모양으로 적었습니다 —
+전화 없는 시험에서는 `simulated:true` 가 붙고 `tenantId`·`orgId`·`did` 가 비어 있을 수 있습니다.
 
 ## 4. 결말과 상한
 
@@ -139,7 +202,7 @@ GET /api/v1/apps/self          Authorization: Bearer dvga_{appId}.{…}
 GET /api/v1/apps/self/usage?month=YYYY-MM
 ```
 
-- 수량만 셉니다: 통화 수 · 결말별 · 테넌트별 · 연결 초 · 지시 수 · TTS 글자(캐시 적중 제외) · STT 초. **금액은 없습니다.**
+- 수량만 셉니다: 통화 수 · 결말별 · 테넌트별 · 연결 초 · 지시 수 · TTS 글자(캐시 적중 제외) · STT 초 · 주소 풀이(`addressLookups`) · 좌표 조회(`coordLookups`). **금액은 없습니다.**
 - `usageUnknownCalls > 0` 이면 그 달의 TTS·STT 합계는 **하한**입니다. 월 경계는 **UTC** 입니다.
 
 ## 5-1. 전화 없이 시험하기
