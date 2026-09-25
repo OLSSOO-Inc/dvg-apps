@@ -81,8 +81,10 @@ async def ask_address(ws, slot):
             if a.get("detail"):
                 line += " " + a["detail"]
             return line, a
-        if st == "unavailable" and p.get("text"):
-            return p["text"].strip(), None  # 주소 풀이를 못 쓰는 설치 — 발화 원문으로(복창이 확인한다)
+        heard = "" if p.get("silence") else p.get("text", "").strip()
+        if heard and (st == "unavailable" or "address" not in p):
+            # 주소 풀이를 못 쓰는 설치(또는 DVG 1.4.16.265 이전 — `address` 키가 없다) — 발화 원문으로(복창이 확인한다)
+            return heard, None
         if st == "ambiguous" and a.get("question"):
             text = a["question"]  # ⭐ DVG 의 질문을 **글자 그대로** — 그래야 다음 답(「서울이요」)을 좁혀 준다
             continue
