@@ -9,7 +9,7 @@
 
 ## 1. 언어
 
-아무 언어나 됩니다. 필요한 것은 ① WebSocket 서버 ② JSON ③ HMAC-SHA256 뿐입니다. 서명 구현이 맞는지는 [적합성 시험 벡터](../conformance/vector.json)로 확인하십시오.
+아무 언어나 됩니다. 필요한 것은 ① WebSocket 서버 ② JSON ③ HMAC-SHA256 뿐입니다. 서명 구현이 맞는지는 [적합성 시험 벡터](../conformance/vector.json)로 확인하십시오. 예제는 [Python](../examples/python/) · [Node.js](../examples/node/) · [Go](../examples/go/) 세 가지이고 동작이 같습니다.
 
 ## 2. 어디에서 돌리나 — 다른 서버 / **DVG 와 같은 서버**
 

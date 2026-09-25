@@ -18,8 +18,9 @@ DVG 가 **전화·음성인식(STT)·음성합성(TTS)·AI 고지·사람 연결
 |---|---|
 | [Python](examples/python/order_app.py) | `pip install -r examples/python/requirements.txt` → `DVG_SIGNING_SECRET=… python3 examples/python/order_app.py` |
 | [Node.js](examples/node/order_app.mjs) | `cd examples/node && npm install` → `DVG_SIGNING_SECRET=… node order_app.mjs` |
+| [Go](examples/go/main.go) | `cd examples/go && DVG_SIGNING_SECRET=… go run .` (Go 1.21+ · 사이드카용은 `go build` 로 바이너리 하나) |
 
-두 예제는 같은 일을 합니다 — 출발지·도착지·결제를 묻고, 복창하고, 등록하고, 끝냅니다. 못 알아들으면 **질문을 바꿔 한 번 더** 묻고, 그래도 안 되면 사람에게 넘깁니다.
+세 예제는 같은 일을 합니다 — 출발지·도착지·결제를 묻고, 복창하고, 등록하고, 끝냅니다. 못 알아들으면 **질문을 바꿔 한 번 더** 묻고, 그래도 안 되면 사람에게 넘깁니다.
 
 ## 문서
 

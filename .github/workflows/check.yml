@@ -16,3 +16,7 @@ jobs:
         working-directory: examples/node
       - run: node --check examples/node/order_app.mjs
       - run: node conformance/check_node.mjs
+      - uses: actions/setup-go@v5
+        with: { go-version-file: examples/go/go.mod }
+      - run: go vet ./... && go test ./... && go build ./...
+        working-directory: examples/go
