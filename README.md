@@ -22,6 +22,19 @@ DVG 가 **전화·음성인식(STT)·음성합성(TTS)·AI 고지·사람 연결
 
 세 예제는 같은 일을 합니다 — 출발지·도착지·결제를 묻고, 복창하고, 등록하고, 끝냅니다. 못 알아들으면 **질문을 바꿔 한 번 더** 묻고, 그래도 안 되면 사람에게 넘깁니다.
 
+### 도메인 예제 — 시나리오 JSON 하나로 바꾼다
+
+[`examples/python/slot_app.py`](examples/python/slot_app.py) 는 **슬롯 엔진**입니다 — 무엇을 묻고 어떻게 복창할지는 시나리오 파일에 있고 대화 규칙은 엔진 한 곳에 있습니다.
+
+| 시나리오 | 묻는 것 | 실행 |
+|---|---|---|
+| [꽃 배달](examples/python/scenarios/flower.json) | 배달지(주소) · 상품(꽃다발/꽃바구니/화환) | `DVG_APP_SCENARIO=scenarios/flower.json python3 slot_app.py` |
+| [대리운전](examples/python/scenarios/driver.json) | 출발지 · 목적지(주소) · 변속기(자동/수동) | `DVG_APP_SCENARIO=scenarios/driver.json python3 slot_app.py` |
+| [음식 배달](examples/python/scenarios/food.json) | 메뉴(자유) · 배달지(주소) · 결제(카드/현금) | `DVG_APP_SCENARIO=scenarios/food.json python3 slot_app.py` |
+
+⭐ **주소는 앱이 풀지 않습니다** — `ask` 에 `"expect":"address"` 를 실으면 DVG 가 발신자의 답을 시·도/구·군/동으로 풀어 주고, 같은 이름이 여러 곳이면
+**좁히는 질문**까지 만들어 줍니다([계약 §3-5](docs/voice-relay-v1.md)). 한 통의 메시지 전부는 [계약 §3-6](docs/voice-relay-v1.md) 에 있습니다.
+
 ## 문서
 
 - 📘 [시작하기](docs/getting-started.md) — 등록 받기 · 어디서 돌리나(다른 서버 / DVG 와 같은 서버) · 대화 규칙 · 시험 · 체크리스트
