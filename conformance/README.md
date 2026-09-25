@@ -10,3 +10,7 @@ python3 conformance/check_python.py
 ```bash
 node conformance/check_node.mjs
 ```
+
+```bash
+cd examples/go && go test ./...
+```
