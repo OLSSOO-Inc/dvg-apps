@@ -1,0 +1,4 @@
+scenarios/
+__pycache__/
+*.pyc
+slot_app.py
