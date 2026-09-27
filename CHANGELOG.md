@@ -4,6 +4,7 @@
 
 ## 앱 개발사 콘솔 샘플 (DVG 1.4.16.259+)
 
+- 한글 시스템 글꼴(Apple SD Gothic Neo · Malgun Gothic · Noto Sans KR)을 글꼴 목록에 명시 — DVG 1.4.16.273 대시보드와 같은 목록(웹 글꼴은 불러오지 않는다).
 - `console/` — 앱 정보 · 사용량 · 시뮬레이터 위젯. 앱 키는 작은 서버가 들고 DVG 로 세 경로만 넘긴다(브라우저에 키 없음 · 리다이렉트 안 따라감).
   계약 v1 과 별개이며 새 DVG API 를 쓰지 않는다(`/api/v1/apps/self`·`/self/usage`·`/self/simulate` 그대로).
 
