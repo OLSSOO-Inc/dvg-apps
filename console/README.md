@@ -46,6 +46,8 @@ Node.js 20+ · 외부 패키지 없음.
 | `CONSOLE_PASSWORD` | (없음) | 화면 비밀번호(HTTP Basic). **`HOST` 가 이 컴퓨터 밖에서 열리는 값이면 필수** — 없으면 시작하지 않습니다 |
 | `CONSOLE_WIDGETS` | `app,usage,simulate` | 보일 위젯과 순서. 예: `usage` 만 |
 
+실서버에 상시 띄우려면(systemd · nginx HTTPS) [실서버 설치 퀵 가이드 C](../docs/deploy-quickstart.md#c-콘솔--사용량--시뮬레이터-화면)를 보십시오.
+
 ## 지키는 것
 
 - 🔑 **앱 키를 브라우저에 두지 않습니다.** 화면 코드에 키를 넣으면 화면을 여는 누구나 키를 가져갑니다. 그래서 작은 서버가 키를 들고 대신 부릅니다.

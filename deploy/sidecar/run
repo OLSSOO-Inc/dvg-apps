@@ -1,0 +1,8 @@
+#!/bin/sh
+# {GW_APPS_SIDECAR_DIR}/{앱 id}/run — DVG 사이드카가 실행하는 파일(이름·위치 고정).
+#
+# DVG 가 systemd 과도 유닛으로 이 파일을 띄우고 DVG_APP_* 환경변수(서명 비밀·포트·경로)를 넣어 줍니다.
+# 작업 디렉터리는 이 파일이 있는 폴더입니다. 권한은 755, 소유자는 root 여야 합니다
+# (그룹·남이 쓸 수 있으면 DVG 가 띄우지 않습니다).
+# ⚠️ CI 가 이 파일을 그대로 설치해 돌려 봅니다(deploy/check/e2e.sh).
+exec ./venv/bin/python ./order_app.py
