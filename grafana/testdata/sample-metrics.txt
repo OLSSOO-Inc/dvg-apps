@@ -1,0 +1,60 @@
+# HELP dvg_process_start_time_seconds 게이트웨이 프로세스 시작 시각(유닉스 초) — 카운터는 이때부터 센다
+# TYPE dvg_process_start_time_seconds gauge
+dvg_process_start_time_seconds 1790483129
+# HELP dvg_app_address_judgments_total 외부 앱 통화의 주소포스 판정 수 — 상태별(resolved·ambiguous·partial·unknown·unavailable)
+# TYPE dvg_app_address_judgments_total counter
+dvg_app_address_judgments_total{tenant="demo-tenant",org="demo-org",app="demo-app",status="ambiguous"} 1
+dvg_app_address_judgments_total{tenant="demo-tenant",org="demo-org",app="demo-app",status="resolved"} 8
+# HELP dvg_app_calls_total 외부 앱 통화 수 — 결말별(completed·transferred·caller_hangup·app_unavailable·app_error·limit·quota·notice_transfer·voice_failed)
+# TYPE dvg_app_calls_total counter
+dvg_app_calls_total{tenant="demo-tenant",org="demo-org",app="demo-app",outcome="app_unavailable"} 1
+dvg_app_calls_total{tenant="demo-tenant",org="demo-org",app="demo-app",outcome="completed"} 8
+dvg_app_calls_total{tenant="demo-tenant",org="demo-org",app="demo-app",outcome="transferred"} 1
+# HELP dvg_app_connected_seconds_total 외부 앱과 연결돼 있던 시간 합(초) — 앱에 연결하지 못한 통화는 0
+# TYPE dvg_app_connected_seconds_total counter
+dvg_app_connected_seconds_total{tenant="demo-tenant",org="demo-org",app="demo-app"} 390
+# HELP dvg_app_live_calls 진행 중인 외부 앱 통화 수
+# TYPE dvg_app_live_calls gauge
+# HELP dvg_app_stt_seconds_total 외부 앱 통화의 음성인식 초 — ⚠️ 수량을 알 수 없던 통화는 빠진다(dvg_app_usage_unknown_calls_total 이 그 수)
+# TYPE dvg_app_stt_seconds_total counter
+dvg_app_stt_seconds_total{tenant="demo-tenant",org="demo-org",app="demo-app"} 326
+# HELP dvg_app_tts_chars_total 외부 앱 통화의 음성합성 글자 수(캐시 적중 제외)
+# TYPE dvg_app_tts_chars_total counter
+dvg_app_tts_chars_total{tenant="demo-tenant",org="demo-org",app="demo-app"} 1040
+# HELP dvg_app_turns_total 외부 앱이 보낸 지시 수
+# TYPE dvg_app_turns_total counter
+dvg_app_turns_total{tenant="demo-tenant",org="demo-org",app="demo-app"} 52
+# HELP dvg_app_usage_unknown_calls_total 음성인식·음성합성 수량을 알 수 없던 외부 앱 통화 수 — 0 이 아니면 위 두 합계는 최소값이다
+# TYPE dvg_app_usage_unknown_calls_total counter
+dvg_app_usage_unknown_calls_total{tenant="demo-tenant",org="demo-org",app="demo-app"} 1
+# HELP dvg_build_info 게이트웨이 빌드 정보(값은 늘 1)
+# TYPE dvg_build_info gauge
+dvg_build_info{version="1.4.16.271"} 1
+# HELP dvg_gateway_sessions DVG 가 지금 다루는 통화 세션 수(테넌트별) — ⚠️ PBX 의 모든 통화가 아니다(게이트웨이를 거치는 통화만)
+# TYPE dvg_gateway_sessions gauge
+# HELP dvg_order_caller_lookup_seconds 내장 주문 접수의 발신번호 조회 시간(초) — 잰 통화만
+# TYPE dvg_order_caller_lookup_seconds histogram
+dvg_order_caller_lookup_seconds_bucket{tenant="demo-tenant",org="demo-org",le="0.5"} 2
+dvg_order_caller_lookup_seconds_bucket{tenant="demo-tenant",org="demo-org",le="1"} 12
+dvg_order_caller_lookup_seconds_bucket{tenant="demo-tenant",org="demo-org",le="2"} 22
+dvg_order_caller_lookup_seconds_bucket{tenant="demo-tenant",org="demo-org",le="4"} 25
+dvg_order_caller_lookup_seconds_bucket{tenant="demo-tenant",org="demo-org",le="6"} 25
+dvg_order_caller_lookup_seconds_bucket{tenant="demo-tenant",org="demo-org",le="8"} 25
+dvg_order_caller_lookup_seconds_bucket{tenant="demo-tenant",org="demo-org",le="10"} 30
+dvg_order_caller_lookup_seconds_bucket{tenant="demo-tenant",org="demo-org",le="12"} 30
+dvg_order_caller_lookup_seconds_bucket{tenant="demo-tenant",org="demo-org",le="15"} 30
+dvg_order_caller_lookup_seconds_bucket{tenant="demo-tenant",org="demo-org",le="20"} 30
+dvg_order_caller_lookup_seconds_bucket{tenant="demo-tenant",org="demo-org",le="+Inf"} 30
+dvg_order_caller_lookup_seconds_sum{tenant="demo-tenant",org="demo-org"} 79.5
+dvg_order_caller_lookup_seconds_count{tenant="demo-tenant",org="demo-org"} 30
+# HELP dvg_order_calls_total 내장 주문 접수 통화 수 — 결말(collected·escalated·hangup) × 고객(returning·new·unknown·none). ⭐ 재오더 무인화율 = returning 중 escalated 가 아닌 비율
+# TYPE dvg_order_calls_total counter
+dvg_order_calls_total{tenant="demo-tenant",org="demo-org",outcome="collected",customer="returning"} 20
+dvg_order_calls_total{tenant="demo-tenant",org="demo-org",outcome="escalated",customer="new"} 5
+dvg_order_calls_total{tenant="demo-tenant",org="demo-org",outcome="escalated",customer="returning"} 5
+dvg_order_calls_total{tenant="demo-tenant",org="demo-org",outcome="hangup",customer="unknown"} 1
+# HELP dvg_order_drafts_total 미완성 오더 예약 접수 결과(created·rejected·unknown) — unknown 은 «만들어졌을 수도 있다»
+# TYPE dvg_order_drafts_total counter
+dvg_order_drafts_total{tenant="demo-tenant",org="demo-org",state="created"} 5
+# HELP dvg_order_org_info 주문 회사 id → 이름(값은 늘 1) — 그라파나에서 org 라벨을 이름으로 바꿀 때 쓴다. 보관된 회사는 status=archived
+# TYPE dvg_order_org_info gauge

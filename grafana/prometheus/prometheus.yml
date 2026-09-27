@@ -1,0 +1,17 @@
+# DVG 지표를 긁는 프로메테우스 설정 예시.
+# ⚠️ targets 를 여러분의 DVG 주소로 바꾸십시오. 토큰(dvgm_…)은 이 파일이 아니라 credentials_file 에 둡니다.
+global:
+  scrape_interval: 30s
+
+scrape_configs:
+  - job_name: dvg
+    metrics_path: /api/v1/metrics
+    scheme: https
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/dvg-token
+    # 사설 인증서(자체 서명)를 쓰는 DVG 라면 CA 파일을 지정하십시오. 검증을 끄는 것은 권하지 않습니다.
+    # tls_config:
+    #   ca_file: /etc/prometheus/dvg-ca.pem
+    static_configs:
+      - targets: ['dvg.example.com:8443']

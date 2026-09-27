@@ -22,3 +22,41 @@ jobs:
         with: { go-version-file: examples/go/go.mod }
       - run: go vet ./... && go test ./... && go build ./...
         working-directory: examples/go
+
+  # 📈 그라파나 템플릿 — 실제 프로메테우스·그라파나를 띄워 모든 패널 쿼리가 오류 없이 도는지 본다.
+  grafana:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - name: 정적 검사
+        run: python grafana/check/check_dashboards.py
+      - name: 가짜 DVG
+        run: |
+          printf '%s' 'ci-token' > /tmp/dvg-token
+          DVG_TOKEN_FILE=/tmp/dvg-token nohup python grafana/check/fake_exporter.py > /tmp/fake.log 2>&1 &
+      - name: 예시 설정 문법(promtool)
+        run: |
+          docker run --rm --entrypoint promtool \
+            -v "$PWD/grafana/prometheus:/p:ro" -v /tmp/dvg-token:/etc/prometheus/dvg-token:ro \
+            prom/prometheus:v2.55.1 check config /p/prometheus.yml
+      - name: 프로메테우스
+        run: |
+          docker run -d --name prom --network host \
+            -v "$PWD/grafana/check/prometheus-ci.yml:/etc/prometheus/prometheus.yml:ro" \
+            -v /tmp/dvg-token:/etc/prometheus/dvg-token:ro prom/prometheus:v2.55.1
+      - name: 그라파나
+        run: |
+          docker run -d --name graf --network host \
+            -e DVG_PROMETHEUS_URL=http://127.0.0.1:9090 -e GF_SECURITY_ADMIN_PASSWORD=ci \
+            -v "$PWD/grafana/provisioning:/etc/grafana/provisioning:ro" \
+            -v "$PWD/grafana/dashboards:/var/lib/grafana/dashboards/dvg:ro" grafana/grafana:11.3.0
+      - name: 실시간 검사
+        run: python grafana/check/check_dashboards.py --live --grafana-password ci --wait 120
+      - name: 실패 시 로그
+        if: failure()
+        run: |
+          cat /tmp/fake.log || true
+          docker logs prom 2>&1 | tail -40 || true
+          docker logs graf 2>&1 | tail -60 || true
