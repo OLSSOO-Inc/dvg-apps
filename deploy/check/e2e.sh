@@ -251,7 +251,8 @@ docker rm -f dvg-e2e-app >/dev/null 2>&1 || true
 # PORT 를 8080 이 아닌 값으로 준다 — 컨테이너가 PORT 를 실제로 따르는지 확인. 비밀 끝의 줄바꿈은 버려져야 한다.
 docker run -d --name dvg-e2e-app -p 127.0.0.1:18095:9090 -e PORT=9090 \
   -e "DVG_APP_SIGNING_SECRET=$CSEC"$'\n' dvg-e2e-app >/dev/null
-wait_for "컨테이너 앱" 30 bash -c 'exec 3<>/dev/tcp/127.0.0.1/18095'
+# ⚠️ 포트로 기다리지 않는다 — 도커의 포트 프록시는 앱이 듣기 전에도 호스트 쪽 접속을 받아 준다(실측: 로그가 비어 있었다).
+wait_for "컨테이너 앱" 30 bash -c 'docker logs dvg-e2e-app 2>&1 | grep -q "^listening "'
 docker logs dvg-e2e-app 2>&1 | grep -q 'listening ws://0.0.0.0:9090/relay' || { docker logs dvg-e2e-app; fail "컨테이너가 PORT 를 따르지 않습니다"; }
 [ "$(docker exec dvg-e2e-app id -u)" != 0 ] || fail "컨테이너 앱이 root 로 돕니다"
 ok "PORT=9090 에서 듣고 root 가 아님"
