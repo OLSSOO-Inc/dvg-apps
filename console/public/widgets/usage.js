@@ -16,7 +16,7 @@ function render(view) {
   if (!view.complete) {
     out.push(h('div', { class: 'msg warn' }, 'DVG 가 이 달 장부의 합계가 맞지 않는다고 알렸습니다 — 아래 수치를 청구 근거로 쓰지 마십시오.'));
   }
-  const lb = view.lowerBound ? '최소값' : '';
+  const lb = view.lowerBound ? '⚠ 최소값' : '';
   out.push(h('div', { class: 'stats' },
     stat('통화', `${fmtInt(view.calls)}통`),
     stat('사람에게 연결', fmtPct(view.toHumanRate)),
@@ -57,7 +57,7 @@ function render(view) {
 
 export async function mount(card, ctx) {
   const month = h('input', { type: 'month', value: monthUTC(), 'aria-label': '달' });
-  const reload = h('button', { class: 'ghost', type: 'button' }, '새로고침');
+  const reload = h('button', { type: 'button' }, '새로고침');
   card.append(h('h2', {}, '📊 사용량', h('span', { class: 'tools' }, month, reload)));
   const body = h('div', {}, '불러오는 중…');
   card.append(body);

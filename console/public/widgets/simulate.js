@@ -25,7 +25,7 @@ export async function mount(card, ctx) {
   const caller = h('input', { type: 'text', inputmode: 'numeric', placeholder: '01012345678', 'aria-label': '발신번호' });
   const did = h('input', { type: 'text', inputmode: 'numeric', placeholder: '07012345678', 'aria-label': '받은 번호' });
   const org = h('input', { type: 'text', placeholder: '(선택)', 'aria-label': '주문 회사 id' });
-  const run = h('button', { type: 'submit' }, '시험 실행');
+  const run = h('button', { type: 'submit', class: 'primary' }, '시험 실행');
   const problems = h('div');
   const result = h('div', {}, h('p', { class: 'note' }, '왼쪽에 발신자가 할 말을 적고 «시험 실행»을 누르십시오.'));
 
