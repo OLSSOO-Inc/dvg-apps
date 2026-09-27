@@ -6,6 +6,16 @@
 > 먼저 할 일: DVG 운영사에게 **앱 등록**을 받으십시오 — 앱 id · **앱 키**(`dvga_…`) · **서명 비밀**을 받습니다(한 번만 보여 줍니다).
 > 운영사가 할 일(기능 켜기 · 등록 · 회사에 설치)은 운영사 문서에 있습니다.
 
+아래 명령은 **이 저장소를 받은 폴더에서** 실행합니다:
+
+```bash
+git clone https://github.com/OLSSOO-Inc/dvg-apps.git
+```
+
+```bash
+cd dvg-apps
+```
+
 ## 0. 어느 경로인가
 
 | | A. 같은 서버(사이드카) | B. 다른 서버 |
@@ -28,7 +38,12 @@
 
 DVG 운영사에게 사이드카를 켜 달라고 하십시오(`GW_APPS_SIDECAR_ENABLED=true`). 그다음 DVG 서버에서:
 
-1. 앱 폴더를 만들고 실행 파일을 둡니다. 위치와 이름(`run`)은 고정입니다.
+1. 앱 폴더를 만들고 실행 파일을 둡니다. 위치와 이름(`run`)은 고정입니다. Debian·Ubuntu 는 `python3-venv` 가 필요합니다.
+
+   ```bash
+   sudo apt install -y python3-venv
+   ```
+
 
    ```bash
    sudo mkdir -p /opt/dvgateway/apps/<앱 id>
