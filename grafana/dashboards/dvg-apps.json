@@ -1,0 +1,498 @@
+{
+  "uid": "dvg-apps",
+  "title": "DVG · 외부 앱",
+  "description": "외부 앱 통화 — 결말 · 사람 연결 · 주소 판정 · 음성 사용량",
+  "tags": [
+    "dvg"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "1m",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "tenant",
+        "label": "테넌트",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "dvg-prometheus"
+        },
+        "query": {
+          "query": "label_values(dvg_app_calls_total, tenant)",
+          "refId": "v"
+        },
+        "definition": "label_values(dvg_app_calls_total, tenant)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "sort": 1
+      },
+      {
+        "name": "org",
+        "label": "회사",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "dvg-prometheus"
+        },
+        "query": {
+          "query": "label_values(dvg_app_calls_total{tenant=~\"$tenant\"}, org)",
+          "refId": "v"
+        },
+        "definition": "label_values(dvg_app_calls_total{tenant=~\"$tenant\"}, org)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "sort": 1
+      },
+      {
+        "name": "app",
+        "label": "앱",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "dvg-prometheus"
+        },
+        "query": {
+          "query": "label_values(dvg_app_calls_total{tenant=~\"$tenant\",org=~\"$org\"}, app)",
+          "refId": "v"
+        },
+        "definition": "label_values(dvg_app_calls_total{tenant=~\"$tenant\",org=~\"$org\"}, app)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "요약",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "앱 통화",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dvg-prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(dvg_app_calls_total{tenant=~\"$tenant\",org=~\"$org\",app=~\"$app\"}[$__range]))",
+          "legendFormat": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dvg-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "사람에게 넘어간 비율",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dvg-prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(dvg_app_calls_total{outcome!~\"completed|caller_hangup\",tenant=~\"$tenant\",org=~\"$org\",app=~\"$app\"}[$__range])) / sum(increase(dvg_app_calls_total{tenant=~\"$tenant\",org=~\"$org\",app=~\"$app\"}[$__range]))",
+          "legendFormat": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dvg-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "앱이 넘긴 것(transferred)과 실패(app_error·app_unavailable·limit·quota·voice_failed 등)를 합친 비율."
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "진행 중",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dvg-prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(dvg_app_live_calls{tenant=~\"$tenant\",org=~\"$org\",app=~\"$app\"})",
+          "legendFormat": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dvg-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "주소 확정률",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dvg-prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(dvg_app_address_judgments_total{status=\"resolved\",tenant=~\"$tenant\",org=~\"$org\",app=~\"$app\"}[$__range])) / sum(increase(dvg_app_address_judgments_total{tenant=~\"$tenant\",org=~\"$org\",app=~\"$app\"}[$__range]))",
+          "legendFormat": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dvg-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 6,
+      "type": "row",
+      "title": "결말 · 주소",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "panels": []
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "결말별 통화",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dvg-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (outcome) (increase(dvg_app_calls_total{tenant=~\"$tenant\",org=~\"$org\",app=~\"$app\"}[$__rate_interval]))",
+          "legendFormat": "{{outcome}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dvg-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 8,
+      "type": "bargauge",
+      "title": "주소 판정 상태",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dvg-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (status) (increase(dvg_app_address_judgments_total{tenant=~\"$tenant\",org=~\"$org\",app=~\"$app\"}[$__range]))",
+          "legendFormat": "{{status}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dvg-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 9,
+      "type": "row",
+      "title": "음성 사용량(수량만)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "panels": []
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "음성인식(분)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dvg-prometheus"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 16
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (app) (increase(dvg_app_stt_seconds_total{tenant=~\"$tenant\",org=~\"$org\",app=~\"$app\"}[$__rate_interval])) / 60",
+          "legendFormat": "{{app}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dvg-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "음성합성(글자)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dvg-prometheus"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 8,
+        "y": 16
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (app) (increase(dvg_app_tts_chars_total{tenant=~\"$tenant\",org=~\"$org\",app=~\"$app\"}[$__rate_interval]))",
+          "legendFormat": "{{app}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dvg-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "수량을 모른 통화",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dvg-prometheus"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 16,
+        "y": 16
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(dvg_app_usage_unknown_calls_total{tenant=~\"$tenant\",org=~\"$org\",app=~\"$app\"}[$__range]))",
+          "legendFormat": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dvg-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {},
+      "description": "0 이 아니면 음성인식·음성합성 합계는 최소값이다(앱에 연결되기 전에 끝난 통화 등)."
+    },
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "평균 턴(통화당 앱 지시)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dvg-prometheus"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 23
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(dvg_app_turns_total{tenant=~\"$tenant\",org=~\"$org\",app=~\"$app\"}[$__rate_interval])) / sum(increase(dvg_app_calls_total{tenant=~\"$tenant\",org=~\"$org\",app=~\"$app\"}[$__rate_interval]))",
+          "legendFormat": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dvg-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "평균 연결 시간",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dvg-prometheus"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 23
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(dvg_app_connected_seconds_total{tenant=~\"$tenant\",org=~\"$org\",app=~\"$app\"}[$__rate_interval])) / sum(increase(dvg_app_calls_total{tenant=~\"$tenant\",org=~\"$org\",app=~\"$app\"}[$__rate_interval]))",
+          "legendFormat": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dvg-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {}
+    }
+  ],
+  "annotations": {
+    "list": []
+  }
+}

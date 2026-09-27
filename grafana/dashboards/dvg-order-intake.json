@@ -1,0 +1,423 @@
+{
+  "uid": "dvg-order-intake",
+  "title": "DVG · 주문 접수",
+  "description": "내장 주문 접수(음성 AI) — 재오더 무인화율 · 결말 · 발신번호 조회 시간 · 미완성 오더",
+  "tags": [
+    "dvg"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": true,
+  "refresh": "1m",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "tenant",
+        "label": "테넌트",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "dvg-prometheus"
+        },
+        "query": {
+          "query": "label_values(dvg_order_calls_total, tenant)",
+          "refId": "v"
+        },
+        "definition": "label_values(dvg_order_calls_total, tenant)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "sort": 1
+      },
+      {
+        "name": "org",
+        "label": "회사",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "dvg-prometheus"
+        },
+        "query": {
+          "query": "label_values(dvg_order_calls_total{tenant=~\"$tenant\"}, org)",
+          "refId": "v"
+        },
+        "definition": "label_values(dvg_order_calls_total{tenant=~\"$tenant\"}, org)",
+        "refresh": 2,
+        "includeAll": true,
+        "allValue": ".*",
+        "multi": true,
+        "current": {
+          "selected": true,
+          "text": [
+            "All"
+          ],
+          "value": [
+            "$__all"
+          ]
+        },
+        "sort": 1
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "🎯 북극성 — 재오더를 사람 없이",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "재오더 무인화율",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dvg-prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(dvg_order_calls_total{customer=\"returning\",outcome=\"collected\",tenant=~\"$tenant\",org=~\"$org\"}[$__range])) / sum(increase(dvg_order_calls_total{customer=\"returning\",tenant=~\"$tenant\",org=~\"$org\"}[$__range]))",
+          "legendFormat": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dvg-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "재오더(등록 고객) 통화 중 사람 없이 접수가 끝난(collected) 비율. 발신자가 먼저 끊은 통화(hangup)는 사람이 붙지 않았지만 접수도 안 됐으므로 분자에 넣지 않는다."
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "재오더인데 사람에게 넘어간 통화",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dvg-prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(dvg_order_calls_total{customer=\"returning\",outcome=\"escalated\",tenant=~\"$tenant\",org=~\"$org\"}[$__range]))",
+          "legendFormat": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dvg-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {},
+      "description": "0 이 아니면 북극성이 새고 있다 — 🧾 기록에서 그 통화의 사유를 본다."
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "전체 통화",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dvg-prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(dvg_order_calls_total{tenant=~\"$tenant\",org=~\"$org\"}[$__range]))",
+          "legendFormat": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dvg-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "사람 연결 비율(전체)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dvg-prometheus"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(dvg_order_calls_total{outcome=\"escalated\",tenant=~\"$tenant\",org=~\"$org\"}[$__range])) / sum(increase(dvg_order_calls_total{tenant=~\"$tenant\",org=~\"$org\"}[$__range]))",
+          "legendFormat": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dvg-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 6,
+      "type": "row",
+      "title": "추이",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "panels": []
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "결말별 통화",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dvg-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (outcome) (increase(dvg_order_calls_total{tenant=~\"$tenant\",org=~\"$org\"}[$__rate_interval]))",
+          "legendFormat": "{{outcome}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dvg-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {}
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "고객 종류별 통화",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dvg-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 7
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (customer) (increase(dvg_order_calls_total{tenant=~\"$tenant\",org=~\"$org\"}[$__rate_interval]))",
+          "legendFormat": "{{customer}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dvg-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {},
+      "description": "returning=재오더 · new=신규 · unknown=조회 실패(신규로 치지 않는다) · none=조회 안 함"
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "발신번호 조회 시간",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dvg-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 15
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "histogram_quantile(0.5, sum by (le) (rate(dvg_order_caller_lookup_seconds_bucket{tenant=~\"$tenant\",org=~\"$org\"}[$__rate_interval])))",
+          "legendFormat": "p50",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dvg-prometheus"
+          }
+        },
+        {
+          "refId": "B",
+          "expr": "histogram_quantile(0.95, sum by (le) (rate(dvg_order_caller_lookup_seconds_bucket{tenant=~\"$tenant\",org=~\"$org\"}[$__rate_interval])))",
+          "legendFormat": "p95",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dvg-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s"
+        },
+        "overrides": []
+      },
+      "options": {},
+      "description": "통화를 받은 뒤 발신자가 기다리는 시간의 큰 몫이다. 잰 통화만 들어간다."
+    },
+    {
+      "id": 10,
+      "type": "bargauge",
+      "title": "미완성 오더 예약 접수 결과",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dvg-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 15
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (state) (increase(dvg_order_drafts_total{tenant=~\"$tenant\",org=~\"$org\"}[$__range]))",
+          "legendFormat": "{{state}}",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dvg-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {},
+      "description": "unknown 은 «만들어졌을 수도 있다» — 실패로 읽지 않는다."
+    },
+    {
+      "id": 11,
+      "type": "row",
+      "title": "회사별",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      },
+      "panels": []
+    },
+    {
+      "id": 12,
+      "type": "table",
+      "title": "회사별 통화",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "dvg-prometheus"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (org) (increase(dvg_order_calls_total{tenant=~\"$tenant\",org=~\"$org\"}[$__range]))",
+          "legendFormat": "",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "dvg-prometheus"
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true
+      },
+      "description": "org 는 회사 id 다 — 이름은 dvg_order_org_info 로 맞춘다(아래 쿼리 참고)."
+    }
+  ],
+  "annotations": {
+    "list": []
+  }
+}

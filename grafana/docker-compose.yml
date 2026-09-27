@@ -1,0 +1,39 @@
+# DVG 지표 → 프로메테우스 → 그라파나 (한 대로 시작하기)
+#
+#   1) DVG 대시보드 ⚙ 설정 → 📈 지표 (그라파나) 에서 토큰(dvgm_…)을 만든다
+#   2) mkdir -p secrets && printf '%s' 'dvgm_여기에_토큰' > secrets/dvg-token && chmod 600 secrets/dvg-token
+#   3) prometheus/prometheus.yml 의 targets 를 DVG 주소로 바꾼다
+#   4) GRAFANA_ADMIN_PASSWORD='정할_비밀번호' docker compose up -d
+#   5) http://localhost:3000 (admin / 정한 비밀번호) → DVG 폴더
+#
+# ⚠️ 그라파나 관리자 비밀번호에 기본값을 두지 않는다 — 비우면 실행이 멈춘다.
+services:
+  prometheus:
+    image: prom/prometheus:v2.55.1
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./secrets/dvg-token:/etc/prometheus/dvg-token:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    environment:
+      DVG_PROMETHEUS_URL: http://prometheus:9090
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD 를 정하십시오}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./provisioning:/etc/grafana/provisioning:ro
+      - ./dashboards:/var/lib/grafana/dashboards/dvg:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  prometheus-data:
+  grafana-data:
