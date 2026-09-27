@@ -23,6 +23,18 @@ jobs:
       - run: go vet ./... && go test ./... && go build ./...
         working-directory: examples/go
 
+  # 🖥 앱 개발사 콘솔 샘플 — 외부 의존성 없음 · 가짜 DVG 로 실제 HTTP 시험.
+  console:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: for f in server.mjs public/*.js public/lib/*.js public/widgets/*.js; do node --check "$f"; done
+        working-directory: console
+      - run: npm test
+        working-directory: console
+
   # 📈 그라파나 템플릿 — 실제 프로메테우스·그라파나를 띄워 모든 패널 쿼리가 오류 없이 도는지 본다.
   grafana:
     runs-on: ubuntu-latest

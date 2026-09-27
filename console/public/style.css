@@ -1,0 +1,182 @@
+/* DVG 토큰 — DVG 대시보드의 :root 값을 그대로 옮겼다(이름도 같다). 대시보드처럼 다크가 기본이다.
+   ⚠️ 값을 바꾸려면 DVG 쪽이 먼저다 — 여기서 따로 바꾸면 두 화면의 색이 갈린다. */
+:root {
+  color-scheme: dark;
+  --bg:         #0d1117;
+  --bg-panel:   #161b22;
+  --bg-card:    #1c2128;
+  --border:     #30363d;
+  --text:       #e6edf3;
+  --text-dim:   #adb5bd;
+  --text-muted: #6e7681;
+  --accent:     #58a6ff;
+  --green:      #3fb950;
+  --yellow:     #d29922;
+  --orange:     #db6d28;
+  --red:        #f85149;
+  --hover-bg:   rgba(255,255,255,0.05);
+  --active-bg:  rgba(88,166,255,0.10);
+  --track-bg:   rgba(255,255,255,0.08);
+  --tint-warn:  rgba(210,153,34,0.12);
+  --tint-bad:   rgba(248,81,73,0.12);
+  --radius-sm:  3px;
+  --radius-md:  4px;
+  --radius:     6px;
+  --radius-lg:  10px;
+  --font-sans:  -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono:  'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg:         #f6f8fa;
+    --bg-panel:   #ffffff;
+    --bg-card:    #eef1f4;
+    --border:     #c8d0d8;
+    --text:       #1f2328;
+    --text-dim:   #424a53;
+    --text-muted: #57606a;
+    --accent:     #0969da;
+    --green:      #1a7f37;
+    --yellow:     #9a6700;
+    --orange:     #bc4c00;
+    --red:        #cf222e;
+    --hover-bg:   rgba(0,0,0,0.05);
+    --active-bg:  rgba(9,105,218,0.08);
+    --track-bg:   rgba(0,0,0,0.07);
+    --tint-warn:  rgba(154,103,0,0.12);
+    --tint-bad:   rgba(207,34,46,0.10);
+  }
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg:         #f6f8fa;
+  --bg-panel:   #ffffff;
+  --bg-card:    #eef1f4;
+  --border:     #c8d0d8;
+  --text:       #1f2328;
+  --text-dim:   #424a53;
+  --text-muted: #57606a;
+  --accent:     #0969da;
+  --green:      #1a7f37;
+  --yellow:     #9a6700;
+  --orange:     #bc4c00;
+  --red:        #cf222e;
+  --hover-bg:   rgba(0,0,0,0.05);
+  --active-bg:  rgba(9,105,218,0.08);
+  --track-bg:   rgba(0,0,0,0.07);
+  --tint-warn:  rgba(154,103,0,0.12);
+  --tint-bad:   rgba(207,34,46,0.10);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+}
+code { font-family: var(--font-mono); font-size: 12px; }
+
+/* 헤더 — 대시보드 .header 와 같은 모양 */
+.top {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 10px 16px; background: var(--bg-panel); border-bottom: 1px solid var(--border);
+}
+.brand { display: flex; align-items: center; gap: 8px; }
+.brand h1 { font-size: 15px; font-weight: 600; margin: 0; color: var(--accent); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); }
+.sample { font-size: 11px; color: var(--text-dim); border: 1px solid var(--border); border-radius: 999px; padding: 0 8px; }
+.conn { font-size: 12px; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+.conn::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--yellow); }
+.conn.ok { color: var(--green); }
+.conn.ok::before { background: var(--green); }
+.conn.bad { color: var(--red); }
+.conn.bad::before { background: var(--red); }
+
+.banner { margin: 12px 16px 0; padding: 10px 14px; border-radius: var(--radius); }
+.banner.warn { background: linear-gradient(var(--tint-warn), var(--tint-warn)), var(--bg-panel); border-left: 4px solid var(--yellow); }
+
+.grid {
+  display: flex; flex-wrap: wrap; gap: 12px; padding: 12px 16px;
+  max-width: 1400px; margin: 0 auto;
+}
+.card {
+  background: var(--bg-panel); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 14px 16px; min-width: 0; flex: 1 1 360px;
+}
+.card.wide { flex-basis: 100%; }
+.card h2 { font-size: 14px; font-weight: 700; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; justify-content: space-between; flex-wrap: wrap; }
+.card h2 .tools { display: flex; gap: 8px; align-items: center; font-weight: normal; }
+
+.kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 0; }
+.kv dt { color: var(--text-dim); }
+.kv dd { margin: 0; word-break: break-all; }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 12px; }
+.stat { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
+.stat .v { font-size: 22px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.stat .k { font-size: 11.5px; color: var(--text-dim); }
+.stat .lb { font-size: 11px; color: var(--text-dim); font-weight: 600; } /* 노란 글자는 라이트 카드 위 4.29:1 — 본문 계열 글자 + ⚠ 로 표시 */
+
+.note { font-size: 12px; color: var(--text-dim); margin: 8px 0 0; }
+/* 상태 틴트는 불투명 면 위에 얹는다(대시보드 토스트와 같은 방식) · 글자는 본문색 — 상태색 글자는 라이트 카드에서 4.5 가 안 나온다 */
+.msg { padding: 8px 12px; border-radius: var(--radius-md); margin: 6px 0; color: var(--text); }
+.msg.info { background: linear-gradient(var(--active-bg), var(--active-bg)), var(--bg-panel); border-left: 4px solid var(--accent); }
+.msg.warn { background: linear-gradient(var(--tint-warn), var(--tint-warn)), var(--bg-panel); border-left: 4px solid var(--yellow); }
+.msg.bad  { background: linear-gradient(var(--tint-bad), var(--tint-bad)), var(--bg-panel); border-left: 4px solid var(--red); }
+
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+th { color: var(--text-dim); font-weight: 600; }
+td.n { text-align: right; font-variant-numeric: tabular-nums; }
+tbody tr:hover { background: var(--hover-bg); }
+.tag { font-size: 11px; border-radius: 999px; padding: 1px 8px; border: 1px solid var(--yellow); color: var(--text); }
+
+.bar { height: 8px; background: var(--track-bg); border-radius: var(--radius-sm); overflow: hidden; margin-top: 6px; }
+.bar > span { display: block; height: 100%; background: var(--accent); }
+.bar.over > span { background: var(--red); }
+
+label { display: block; font-size: 12px; color: var(--text-dim); margin: 10px 0 4px; }
+input, textarea, button, select { font: inherit; color: inherit; }
+input, textarea {
+  width: 100%; background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 7px 10px;
+}
+input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+textarea { min-height: 150px; resize: vertical; font-family: var(--font-mono); font-size: 12px; }
+input[type="month"] { width: auto; }
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+
+/* 버튼 — 대시보드 .config-btn 과 같다(주 버튼 글자는 --bg: 흰 글자는 다크 accent 위 2.5:1 이라 못 읽는다) */
+button {
+  font-size: 12px; font-weight: 600; padding: 6px 14px; border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--bg-card); color: var(--text); cursor: pointer;
+  transition: border-color 0.15s;
+}
+button:hover { border-color: var(--accent); color: var(--accent); }
+button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+button.primary:hover { opacity: 0.85; color: var(--bg); }
+button:disabled { opacity: 0.5; cursor: progress; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.sim { display: grid; grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.4fr); gap: 16px; }
+@media (max-width: 900px) { .sim { grid-template-columns: 1fr; } }
+
+.chat { display: flex; flex-direction: column; gap: 6px; max-height: 560px; overflow-y: auto; padding-right: 4px; }
+.bubble { max-width: 88%; padding: 7px 11px; border-radius: var(--radius-lg); }
+.bubble.dvg { background: var(--active-bg); align-self: flex-start; border-bottom-left-radius: var(--radius-sm); }
+.bubble.caller { background: var(--bg-card); align-self: flex-end; border-bottom-right-radius: var(--radius-sm); }
+.bubble .who { font-size: 11px; color: var(--text-dim); margin-bottom: 2px; }
+.bubble .n { font-size: 11.5px; color: var(--text-dim); margin-top: 4px; }
+.bubble.silence .t, .bubble.hangup .t { color: var(--text-dim); font-style: italic; }
+
+.outcome { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; margin-bottom: 10px; }
+.outcome .code { font-family: var(--font-mono); font-size: 12px; color: var(--text-dim); }
+.outcome .big { font-size: 15px; font-weight: 700; }
+.outcome .big.human { color: var(--yellow); }
+
+.foot { text-align: center; font-size: 12px; color: var(--text-dim); padding: 8px 16px 20px; }
+[hidden] { display: none !important; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

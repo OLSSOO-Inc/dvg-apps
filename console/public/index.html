@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DVG 앱 콘솔</title>
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <span class="dot" aria-hidden="true"></span>
+      <h1>DVG 앱 콘솔</h1>
+      <span class="sample">샘플</span>
+    </div>
+    <div class="conn" id="conn">연결 확인 중…</div>
+  </header>
+
+  <div class="banner warn" id="insecure" hidden>
+    ⚠️ DVG 주소가 평문(http)입니다 — 앱 키가 암호화 없이 오갑니다. <code>DVG_BASE_URL</code> 을 https 주소로 바꾸십시오.
+  </div>
+
+  <main id="widgets" class="grid"></main>
+
+  <footer class="foot">
+    앱 키는 콘솔 서버 안에만 있고 이 화면으로 오지 않습니다 · 수치는 수량뿐입니다(원화 없음) · 달은 UTC 기준입니다
+  </footer>
+</body>
+</html>
