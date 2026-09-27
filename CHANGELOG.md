@@ -2,6 +2,12 @@
 
 필드 추가는 버전을 올리지 않습니다(모르는 필드는 무시). **기존 앱을 깨뜨리는 변경만** 버전을 올립니다.
 
+## Cloud Run 실측
+
+- 퀵 가이드 B2 명령을 **적힌 그대로** 실제 Cloud Run(서울)에 실행 — 전부 성공. 서명 없는 연결 401 · DVG 1.4.16.273 시뮬레이터 `completed`.
+- **콜드스타트 1.19초**(25분 쉰 뒤 첫 연결 · Cloud Run 로그 `Starting new instance … AUTOSCALING` 로 진짜 콜드스타트임을 확인) — DVG 연결 제한 5초 안. `--min-instances 0` 도 쓸 수 있다고 가이드에 적었다.
+- ⚠️ 남은 미확인: 새 판 배포 중 진행 통화 · 실제 전화.
+
 ## Cloud Run 예제
 
 - `examples/python/Dockerfile` — `PORT` 로 듣고(Cloud Run 기본 8080) root 가 아닌 사용자로 돈다. 퀵 가이드 **B2** 에 배포 명령(비밀 관리자 · `--timeout 900` · `--min-instances 1`).
