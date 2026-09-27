@@ -35,6 +35,24 @@ jobs:
       - run: npm test
         working-directory: console
 
+  # 🚀 실서버 설치 — deploy/ 의 nginx·systemd·사이드카 파일을 **수정 없이** 실제 DVG 릴리즈와 함께 돌려 본다.
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: 스크립트 검사
+        run: shellcheck -S warning deploy/check/e2e.sh deploy/sidecar/run
+      - name: 전체 경로 시험
+        run: sudo --preserve-env=PATH bash deploy/check/e2e.sh
+      - name: 실패 시 로그
+        if: failure()
+        run: |
+          sudo tail -80 /tmp/dvg-e2e/dvg.log || true
+          docker logs dvg-e2e-nginx 2>&1 | tail -40 || true
+          sudo journalctl -u dvg-app -u dvg-app-console -u dvg-app-e2e-sidecar --no-pager -n 80 || true
+
   # 📈 그라파나 템플릿 — 실제 프로메테우스·그라파나를 띄워 모든 패널 쿼리가 오류 없이 도는지 본다.
   grafana:
     runs-on: ubuntu-latest

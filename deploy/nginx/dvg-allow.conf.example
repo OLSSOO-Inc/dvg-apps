@@ -1,0 +1,6 @@
+# /etc/nginx/dvg-allow.conf — relay 에 접속해도 되는 곳
+#
+# DVG 서버의 **공인 IP**를 적습니다(DVG 운영사에게 받으십시오). DVG 가 여러 대면 한 줄씩.
+# 이 파일을 비우거나 지우면 nginx 가 시작하지 않습니다(include 대상이 없다) — 조용히 전부 여는 일은 없습니다.
+allow 203.0.113.10;
+deny  all;

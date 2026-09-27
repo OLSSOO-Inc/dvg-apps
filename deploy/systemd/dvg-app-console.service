@@ -1,0 +1,27 @@
+# /etc/systemd/system/dvg-app-console.service — 앱 개발사 콘솔(console/)
+#
+# Node.js 20 이상이 필요합니다. `node` 는 PATH 에서 찾습니다(/usr/bin 또는 /usr/local/bin).
+# ⚠️ CI 가 이 파일을 그대로 설치해 돌려 봅니다(deploy/check/e2e.sh).
+
+[Unit]
+Description=DVG app console
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=dvgapp
+Group=dvgapp
+WorkingDirectory=/opt/dvg-app-console
+# DVG_BASE_URL · DVG_APP_KEY_FILE · HOST=127.0.0.1 · PORT · CONSOLE_PASSWORD (권한 0640 root:dvgapp)
+EnvironmentFile=/etc/dvg-app/console.env
+ExecStart=/usr/bin/env node /opt/dvg-app-console/server.mjs
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target
