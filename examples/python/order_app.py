@@ -22,6 +22,7 @@ import time
 from http import HTTPStatus
 
 from websockets.asyncio.server import serve
+from websockets.exceptions import ConnectionClosed
 
 def _env(*names, default=""):
     for n in names:
@@ -70,7 +71,13 @@ class CallEnded(Exception):
 
 
 async def recv(ws):
-    msg = json.loads(await ws.recv())
+    try:
+        raw = await ws.recv()
+    except ConnectionClosed:
+        # DVG 는 end 를 보낸 뒤 연결을 닫는다. 앞에 프록시가 있으면 end 가 오기 전에 닫힐 수 있다 —
+        # 그래도 통화는 끝났다(결말은 모른다). 오류로 다루지 않는다.
+        raise CallEnded("closed")
+    msg = json.loads(raw)
     if msg.get("type") == "end":
         raise CallEnded(msg.get("reason", ""))
     return msg

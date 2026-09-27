@@ -83,6 +83,12 @@ func (s session) recv() (msg, error) {
 	var m msg
 	_ = s.c.SetReadDeadline(time.Now().Add(15 * time.Minute))
 	if err := s.c.ReadJSON(&m); err != nil {
+		// DVG 는 end 를 보낸 뒤 연결을 닫는다. 앞에 프록시가 있으면 end 가 오기 전에 닫힐 수 있다 —
+		// 그래도 통화는 끝났다(결말은 모른다). 오류로 다루지 않는다.
+		if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+			log.Printf("통화 끝: closed")
+			return m, errCallEnded
+		}
 		return m, err
 	}
 	if m.Type == "end" {
