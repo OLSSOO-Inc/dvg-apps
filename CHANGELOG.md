@@ -2,6 +2,13 @@
 
 필드 추가는 버전을 올리지 않습니다(모르는 필드는 무시). **기존 앱을 깨뜨리는 변경만** 버전을 올립니다.
 
+## Cloud Run 예제
+
+- `examples/python/Dockerfile` — `PORT` 로 듣고(Cloud Run 기본 8080) root 가 아닌 사용자로 돈다. 퀵 가이드 **B2** 에 배포 명령(비밀 관리자 · `--timeout 900` · `--min-instances 1`).
+- 예제 앱이 서명 비밀의 **앞뒤 공백·줄바꿈을 버린다**(비밀 관리자·편집기가 붙인 줄바꿈 하나로 모든 서명이 어긋나던 함정).
+- CI `deploy` 잡 9단계 — 그 Dockerfile 을 수정 없이 빌드해 `PORT=9090` 으로 띄우고, 서명 없는 연결 401 · 실제 DVG 와 대화 완주를 확인한다.
+- ⚠️ **실제 Cloud Run 에는 올려 보지 않았다**(TLS 종단·콜드스타트·배포 중 통화 미확인).
+
 ## 실서버 설치 퀵 가이드 (DVG 1.4.16.262+)
 
 - `docs/deploy-quickstart.md` + `deploy/`(nginx relay·콘솔 설정, systemd 유닛 둘, 사이드카 `run`).

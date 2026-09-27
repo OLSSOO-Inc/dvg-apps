@@ -32,7 +32,8 @@ def _env(*names, default=""):
 
 
 # DVG 사이드카(🖥 이 서버에서 실행)로 띄우면 DVG 가 DVG_APP_* 를 넣어 준다. 손으로 띄울 때는 옛 이름도 받는다.
-SIGNING_SECRET = _env("DVG_APP_SIGNING_SECRET", "DVG_SIGNING_SECRET")
+# ⚠️ 앞뒤 공백·줄바꿈은 버린다 — 비밀 관리자·편집기가 끝에 붙인 줄바꿈 하나로 모든 서명이 어긋난다.
+SIGNING_SECRET = _env("DVG_APP_SIGNING_SECRET", "DVG_SIGNING_SECRET").strip()
 HOST = _env("DVG_APP_HOST", "APP_HOST", default="127.0.0.1")
 PORT = int(_env("DVG_APP_PORT", "APP_PORT", default="19999"))
 PATH = _env("DVG_APP_PATH", "APP_PATH", default="/relay")

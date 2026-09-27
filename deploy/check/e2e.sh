@@ -6,8 +6,10 @@
 #     → systemd 로 띄운 예제 앱(deploy/systemd/dvg-app.service 그대로)
 #   브라우저 대신 curl → nginx → systemd 로 띄운 콘솔(deploy/systemd/dvg-app-console.service) → DVG
 #   DVG 사이드카(deploy/sidecar/run) → systemd 과도 유닛
+#   컨테이너(examples/python/Dockerfile · Cloud Run 방식 — PORT 로 듣기)
 #
 # 이 시험이 증명하지 못하는 것: 실제 인증서 발급·갱신(certbot) · 클라우드 방화벽 · 실제 전화 통화.
+#                             Cloud Run 자체(TLS 종단·콜드스타트·배포 중 통화) — 컨테이너까지만 본다.
 #
 # ⚠️ root 권한이 필요하고 시스템을 바꾼다(사용자 · /opt · /etc/systemd). **CI 러너 전용** — 운영 서버에서 돌리지 마십시오.
 set -euo pipefail
@@ -239,5 +241,27 @@ sc=$(admin -X POST http://127.0.0.1:18080/api/v1/apps/e2e-sidecar/simulate -d '{
 ok "사이드카 시뮬레이터 completed"
 admin -X POST http://127.0.0.1:18080/api/v1/apps/e2e-sidecar/sidecar/stop > /dev/null
 ok "사이드카 멈춤"
+
+# ── 9. 컨테이너(Cloud Run 과 같은 방식) ─────────────────────────────────
+say "9. 컨테이너 — examples/python/Dockerfile 을 수정 없이 빌드해 PORT 로 띄운다(Cloud Run 방식)"
+register e2e-container "ws://127.0.0.1:18095/relay"
+docker build -q -t dvg-e2e-app "$REPO/examples/python" > /dev/null
+CSEC=$(json 'd["credentials"]["signingSecret"]' < "$W/e2e-container.json")
+docker rm -f dvg-e2e-app >/dev/null 2>&1 || true
+# PORT 를 8080 이 아닌 값으로 준다 — 컨테이너가 PORT 를 실제로 따르는지 확인. 비밀 끝의 줄바꿈은 버려져야 한다.
+docker run -d --name dvg-e2e-app -p 127.0.0.1:18095:9090 -e PORT=9090 \
+  -e "DVG_APP_SIGNING_SECRET=$CSEC"$'\n' dvg-e2e-app >/dev/null
+wait_for "컨테이너 앱" 30 bash -c 'exec 3<>/dev/tcp/127.0.0.1/18095'
+docker logs dvg-e2e-app 2>&1 | grep -q 'listening ws://0.0.0.0:9090/relay' || { docker logs dvg-e2e-app; fail "컨테이너가 PORT 를 따르지 않습니다"; }
+[ "$(docker exec dvg-e2e-app id -u)" != 0 ] || fail "컨테이너 앱이 root 로 돕니다"
+ok "PORT=9090 에서 듣고 root 가 아님"
+nosig=$(curl -s -o /dev/null -w '%{http_code}' -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
+  -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' http://127.0.0.1:18095/relay)
+[ "$nosig" = 401 ] || fail "서명 없는 연결이 401 이 아닙니다(HTTP $nosig)"
+ok "서명 없는 연결은 401"
+cs=$(admin -X POST http://127.0.0.1:18080/api/v1/apps/e2e-container/simulate -d '{"utterances":["강남구 역삼동","마포구 서교동","착불이요","네"]}')
+[ "$(echo "$cs" | json 'd["outcome"]')" = completed ] || { echo "$cs"; docker logs dvg-e2e-app; fail "컨테이너 앱 시뮬레이터 실패"; }
+ok "컨테이너 앱 시뮬레이터 completed(비밀 끝 줄바꿈 무해)"
+docker rm -f dvg-e2e-app >/dev/null
 
 say "모두 통과"

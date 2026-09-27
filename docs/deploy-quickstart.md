@@ -18,12 +18,12 @@ cd dvg-apps
 
 ## 0. 어느 경로인가
 
-| | A. 같은 서버(사이드카) | B. 다른 서버 |
-|---|---|---|
-| 앱이 사는 곳 | DVG 서버 안(DVG 가 띄움) | 여러분의 서버 |
-| relay 주소 | `ws://127.0.0.1:19998/relay` | `wss://app.example.com/dvg-relay` |
-| 필요한 것 | DVG 서버 셸 권한 | 도메인 · 인증서 · nginx |
-| 누가 앱을 살려 두나 | DVG(systemd 과도 유닛) | 여러분(systemd) |
+| | A. 같은 서버(사이드카) | B. 다른 서버 | B2. 서버 없이(Cloud Run) |
+|---|---|---|---|
+| 앱이 사는 곳 | DVG 서버 안(DVG 가 띄움) | 여러분의 서버 | Google Cloud Run 컨테이너 |
+| relay 주소 | `ws://127.0.0.1:19998/relay` | `wss://app.example.com/dvg-relay` | `wss://dvg-app-….run.app/relay` |
+| 필요한 것 | DVG 서버 셸 권한 | 도메인 · 인증서 · nginx | GCP 프로젝트(인증서·TLS 는 Cloud Run 이 맡는다) |
+| 누가 앱을 살려 두나 | DVG(systemd 과도 유닛) | 여러분(systemd) | Cloud Run |
 
 **연결 방향을 기억하십시오: DVG 가 앱에 접속합니다.** 다른 서버 경로에서는 앱 서버가 **DVG 서버의 IP 에서 오는 443 접속**을 받아야 합니다.
 콘솔은 반대로 앱 서버에서 **DVG 의 HTTPS 주소로 나갑니다.**
@@ -163,6 +163,72 @@ Ubuntu 22.04+ 기준입니다. `app.example.com` 을 여러분의 도메인으�
 6. **방화벽** — 443 을 **DVG 서버 IP 에만** 여십시오(클라우드 보안그룹 포함). nginx 허용 목록과 방화벽은 **둘 다** 둡니다.
 7. 운영사에게 relay 주소 `wss://app.example.com/dvg-relay` 를 알려 앱 등록에 적게 합니다.
 
+## B2. 서버 없이 — Cloud Run
+
+서버를 두지 않고 Google Cloud Run 에 앱 컨테이너를 올립니다. 인증서와 TLS 는 Cloud Run 이 맡으므로 nginx·certbot 이 필요 없습니다.
+컨테이너 파일은 [`examples/python/Dockerfile`](../examples/python/Dockerfile) 입니다(다른 언어도 같은 방식 — **`PORT` 로 듣고, 모든 주소에서 듣는다**).
+
+명령은 `gcloud` 가 설치된 컴퓨터나 Cloud Shell 에서, 이 저장소 폴더에서 실행합니다.
+
+1. **쓸 서비스를 켭니다**:
+
+   ```bash
+   gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com secretmanager.googleapis.com
+   ```
+
+2. **서명 비밀을 비밀 관리자에 넣습니다** — 비밀을 명령줄에 적지 않도록 파일로 넘기고 바로 지웁니다.
+
+   ```bash
+   (umask 077; cat > "$HOME/dvg-secret.txt")
+   ```
+
+   받은 서명 비밀을 붙여 넣고 Enter · Ctrl+D 를 누른 뒤:
+
+   ```bash
+   gcloud secrets create dvg-signing-secret --data-file="$HOME/dvg-secret.txt"
+   ```
+
+   ```bash
+   rm "$HOME/dvg-secret.txt"
+   ```
+
+   끝에 붙은 줄바꿈은 앱이 버립니다(그대로 두면 모든 서명이 어긋나므로 예제 앱이 앞뒤 공백을 지웁니다).
+
+3. **Cloud Run 이 그 비밀을 읽게 합니다**(기본 서비스 계정 기준 — 다른 서비스 계정을 쓰면 그 계정으로):
+
+   ```bash
+   PN=$(gcloud projects describe "$(gcloud config get-value project)" --format='value(projectNumber)')
+   ```
+
+   ```bash
+   gcloud secrets add-iam-policy-binding dvg-signing-secret --member="serviceAccount:${PN:?project number is empty}-compute@developer.gserviceaccount.com" --role=roles/secretmanager.secretAccessor
+   ```
+
+4. **배포합니다**(처음이면 저장소를 만들지 묻습니다 — `Y`):
+
+   ```bash
+   gcloud run deploy dvg-app --source examples/python --region asia-northeast3 --allow-unauthenticated --timeout 900 --min-instances 1 --set-secrets DVG_APP_SIGNING_SECRET=dvg-signing-secret:latest
+   ```
+
+   | 옵션 | 왜 |
+   |---|---|
+   | `--allow-unauthenticated` | DVG 는 Google 인증을 하지 않습니다. **인증은 앱의 서명 확인**이 합니다(서명 없는 연결은 401) |
+   | `--timeout 900` | 통화 한 건 동안 연결이 이어집니다(DVG 상한 10분). 기본 5분이면 긴 통화가 끊깁니다 |
+   | `--min-instances 1` | DVG 는 연결을 **5초** 안에 맺지 못하면 사람에게 넘깁니다. 인스턴스가 0 이면 첫 통화가 콜드스타트에 걸릴 수 있습니다(대기 인스턴스 요금이 듭니다) |
+   | `asia-northeast3` | 서울. DVG 가 한국에 있으면 턴마다 왕복 시간이 줄어듭니다 |
+
+5. **relay 주소를 확인합니다**:
+
+   ```bash
+   gcloud run services describe dvg-app --region asia-northeast3 --format='value(status.url)'
+   ```
+
+   나온 `https://dvg-app-….run.app` 의 `https://` 를 `wss://` 로 바꾸고 끝에 `/relay` 를 붙인 것이 relay 주소입니다. 운영사에게 알려 앱 등록에 적게 합니다.
+
+⚠️ **IP 제한이 없습니다** — nginx 경로와 달리 누구나 이 주소에 연결을 시도할 수 있고, **서명 확인이 유일한 문**입니다. IP 로도 막으려면 외부 부하분산기 + Cloud Armor 를 앞에 둡니다.
+⚠️ 조직 정책이 `--allow-unauthenticated` 를 막는 프로젝트가 있습니다(「도메인 제한 공유」). 그때는 배포가 실패하니 관리자에게 예외를 받으십시오.
+⚠️ **새 판 배포 중에 진행 중이던 통화가 어떻게 되는지는 확인하지 않았습니다.** 통화가 적은 시간에 배포하십시오.
+
 ## C. 콘솔 — 사용량 · 시뮬레이터 화면
 
 앱 서버(B) 또는 여러분의 다른 서버에 둡니다. **Node.js 20+** 가 필요합니다.
@@ -262,4 +328,8 @@ ssh -L 8790:127.0.0.1:8790 사용자@앱서버
 | DVG → nginx `wss` → 앱(인증서 검증 포함) · 콘솔 HTTPS · 비밀번호 | ✅ CI |
 | 인증서 이름이 틀리면 연결 거부 · 허용 목록 밖은 403 | ✅ CI(대조군) |
 | 사이드카: 일회용 사용자로 실행 · DVG 디렉터리 차단 설정 | ✅ CI |
+| 컨테이너(`examples/python/Dockerfile`): `PORT` 로 듣기 · root 아님 · 서명 없는 연결 401 · 실제 DVG 와 대화 완주 | ✅ CI(Cloud Run 과 같은 방식으로 띄운 컨테이너) |
+| Cloud Run 자체: 배포 명령 · TLS 종단 · 콜드스타트 시간 · 배포 중 통화 | ⚠️ **실제 Cloud Run 에 올려 보지 않았습니다**(GCP 계정 필요) — 명령은 인자 전개까지만 확인했습니다 |
 | certbot 발급·갱신 · 클라우드 방화벽 · **실제 전화 통화** | ⚠️ CI 로는 확인할 수 없습니다 — 여러분 서버에서 D 표 4번으로 확인하십시오 |
+
+⭐ AWS Lambda(API Gateway WebSocket)도 원리상 가능하지만 메시지마다 함수가 따로 불려 **통화 상태를 밖(DB)에 둬야 하고** 예제 앱을 그대로 쓸 수 없어 여기서는 다루지 않습니다.
