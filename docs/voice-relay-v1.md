@@ -87,8 +87,8 @@ DVG → 앱   end
 |---|---|---|
 | `setup` | `version` · `callId` · `tenantId` · `orgId` · `appId` · `did` · `noticePlayed` · `caller`(조건부) · `simulated`(조건부) | 통화 시작. `caller` 는 **운영자가 설치에서 발신번호 제공을 켰을 때만** 있습니다(키 자체가 없으면 «제공하지 않음»). 🔴 **`simulated:true` 는 전화 없는 시험**(gw 1.4.16.259) — 그때는 **실제 주문을 만들지 마십시오**(실통화에서는 키가 없습니다) |
 | `said` | — | `say` 재생이 끝났다 |
-| `prompt` | `text` · `silence` · `lowConfidence` · `spokeDuringPlayback` · `heardVoice`(gw 1.4.16.261 — 소리는 있었는데 말로 인식되지 않았다 · 무응답과 «말했는데 못 알아들음» 을 가른다) · (선택지를 줬으면) `choice` · `choiceIndex` · `choiceSource` · `confirm` · `choiceAmbiguous` · (`expect:"address"` 였으면) `address` | `ask` 뒤 발신자가 한 말. `silence:true` 면 아무 말도 없었다. 선택지 판정은 §3-4, 주소는 §3-5 |
-| `error` | `code` · `message` | 지시가 잘못됐다 — `unknown_type` · `text_required` · `text_too_long` · `bad_choices` · `bad_expect`. **3번 넘으면** 통화가 사람에게 간다 |
+| `prompt` | `text` · `silence` · `lowConfidence` · `spokeDuringPlayback` · `heardVoice`(gw 1.4.16.261 — 소리는 있었는데 말로 인식되지 않았다 · 무응답과 «말했는데 못 알아들음» 을 가른다) · (선택지를 줬으면) `choice` · `choiceIndex` · `choiceSource` · `confirm` · `choiceAmbiguous` · (`expect:"address"` 였으면) `address` · (긴 듣기를 **적용했으면**) `listenSeconds` | `ask` 뒤 발신자가 한 말. `silence:true` 면 아무 말도 없었다. 선택지 판정은 §3-4, 주소는 §3-5 |
+| `error` | `code` · `message` | 지시가 잘못됐다 — `unknown_type` · `text_required` · `text_too_long` · `bad_choices` · `bad_expect` · `bad_listen_seconds`. **3번 넘으면** 통화가 사람에게 간다 |
 | `end` | `reason` | 세션 끝(§4 결말). 이 뒤로는 보내도 소용없습니다. DVG 는 `end` 뒤에 **WebSocket close(1000)** 로 연결을 닫습니다(DVG 1.4.16.275+). ⚠️ **`end` 없이 연결이 닫혀도 통화는 끝난 것입니다** — 앞에 프록시(Cloud Run 등)가 있으면 `end` 가 오기 전에 닫힐 수 있고, DVG 1.4.16.274 이하는 close 프레임 없이 끊습니다. 그때 결말은 **모른다**로 두십시오(예제 앱은 `reason:"closed"`) |
 
 ### 3-3. 앱 → DVG
@@ -96,7 +96,7 @@ DVG → 앱   end
 | type | 필드 | 동작 |
 |---|---|---|
 | `say` | `text`(필수 · 500자 이하) · `interruptible`(선택 · gw 1.4.16.261) | 끝까지 말한다(끼어들어도 멈추지 않음) → `said`. `interruptible:true` 면 **발신자가 끼어들 때 멈춘다**(듣지는 않는다 — 이어서 `ask{text:""}` 로 듣는다). ⚠️ 복창·결제 안내처럼 **끝까지 들려야 하는 말에는 쓰지 마십시오** |
-| `ask` | `text`(선택 · 500자 이하) · `choices`(선택 · 2~6개 · 각 1~20자 · 중복 없음) · `expect`(선택 · `"address"`) · `label`(선택 · `expect` 와 함께 · 1~10자) | 질문을 말하고(발신자가 끼어들면 멈춤) **발신자 답을 듣는다** → `prompt`. `text` 가 비면 말없이 듣기만 한다. `choices` 가 규칙에 어긋나면 **묻지 않고** `error bad_choices`. `expect` 는 §3-5(`choices` 와 함께 쓰면 `bad_expect`) |
+| `ask` | `text`(선택 · 500자 이하) · `choices`(선택 · 2~6개 · 각 1~20자 · 중복 없음) · `expect`(선택 · `"address"`) · `label`(선택 · `expect` 와 함께 · 1~10자) · `listenSeconds`(선택 · 5~90 · §3-7) | 질문을 말하고(발신자가 끼어들면 멈춤) **발신자 답을 듣는다** → `prompt`. `text` 가 비면 말없이 듣기만 한다. `choices` 가 규칙에 어긋나면 **묻지 않고** `error bad_choices`. `expect` 는 §3-5(`choices` 와 함께 쓰면 `bad_expect`) |
 | `transfer` | — | **사람에게 연결**. 🔴 번호는 지정할 수 없습니다 — 그 주문 회사에 운영자가 정한 호전환 번호로 갑니다 |
 | `hangup` | `text`(선택 · 마지막 인사) | 인사 후 통화 종료 |
 
@@ -178,6 +178,24 @@ DVG → 앱   end
 ⭐ 이 대화는 [예제 슬롯 엔진](../examples/python/slot_app.py)의 [꽃 배달 시나리오](../examples/python/scenarios/flower.json)가 **DVG 실제 relay·주소 풀이 코드**와
 실제로 주고받은 메시지입니다(발화는 글자로 넣은 시험 · 줄을 나누고 `turn` 을 뺐습니다). ⚠️ `setup` 은 실통화 모양으로 적었습니다 —
 전화 없는 시험에서는 `simulated:true` 가 붙고 `tenantId`·`orgId`·`did` 가 비어 있을 수 있습니다.
+
+### 3-7. 긴 듣기(`ask.listenSeconds`) — gw 1.4.16.291+
+
+보통의 `ask` 는 발신자가 말을 멈추고 **잠깐 조용하면** 답이 끝난 것으로 봅니다. 그래서 「생각나는 과일 이름을 말씀해 주세요」처럼
+**생각하며 쉬는 것이 정상인 질문**은 첫 낱말 뒤 잠깐 쉬는 순간 답이 잘립니다. 그런 질문에는 `listenSeconds` 를 실으십시오 —
+DVG 가 그 시간(**5~90초**) 동안 쉼으로 끊지 않고 말을 모아 **한 번에** `prompt.text` 로 줍니다.
+
+```json
+{"type":"ask","text":"30초 동안 생각나는 과일 이름을 말씀해 주세요. 시작하세요.","listenSeconds":30}
+```
+
+- 창이 끝나는 순간 말하는 중이면 그 말이 끝날 때까지 잠깐 더 기다립니다(마지막 낱말이 잘리지 않게).
+- ⭐ **적용했으면 `prompt.listenSeconds` 에 같은 값이 돌아옵니다.** 키가 없으면 **적용되지 않은 것**입니다(이 기능이 없는 DVG
+  버전 등) — 그때 답은 잘렸을 수 있으니 점수를 매기는 앱은 «측정 못 함» 으로 다루십시오.
+- 아무 말도 없으면 `silence:true`(소리는 있었는데 인식되지 않았으면 `heardVoice:true`).
+- `choices`·`expect` 와 함께 쓸 수 없습니다(`bad_listen_seconds`). 범위 밖도 같은 오류입니다.
+- ⚠️ 창이 길수록 통화 시간(=음성인식 비용)이 늘어납니다. 꼭 필요한 질문에만 쓰십시오.
+- 🧪 시험(§5-1)은 글자 시험이라 시간이 흐르지 않습니다 — 발화 하나가 그 창 전체에 한 말로 취급됩니다.
 
 ## 4. 결말과 상한
 
