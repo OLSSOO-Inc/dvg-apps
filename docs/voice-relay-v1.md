@@ -85,7 +85,7 @@ DVG → 앱   end
 
 | type | 필드 | 뜻 |
 |---|---|---|
-| `setup` | `version` · `callId` · `tenantId` · `orgId` · `appId` · `did` · `noticePlayed` · `direction` · `caller`(조건부) · `simulated`(조건부) | 통화 시작. `direction` 은 `"inbound"`(상대가 걸어왔다) 또는 `"outbound"`(DVG 가 걸었다 · gw 1.4.16.292+) — **없으면 수신**(구버전 DVG). `caller` 는 **운영자가 설치에서 발신번호 제공을 켰을 때만** 있고, 발신 통화에서도 **상대 번호**입니다(키 자체가 없으면 «제공하지 않음»). 🔴 **`simulated:true` 는 전화 없는 시험**(gw 1.4.16.259) — 그때는 **실제 주문을 만들지 마십시오**(실통화에서는 키가 없습니다) |
+| `setup` | `version` · `callId` · `tenantId` · `orgId` · `appId` · `did` · `noticePlayed` · `direction` · `caller`(조건부) · `simulated`(조건부) · `settings`(조건부) | 통화 시작. `direction` 은 `"inbound"`(상대가 걸어왔다) 또는 `"outbound"`(DVG 가 걸었다 · gw 1.4.16.292+) — **없으면 수신**(구버전 DVG). `caller` 는 **운영자가 설치에서 발신번호 제공을 켰을 때만** 있고, 발신 통화에서도 **상대 번호**입니다(키 자체가 없으면 «제공하지 않음»). 🔴 **`simulated:true` 는 전화 없는 시험**(gw 1.4.16.259) — 그때는 **실제 주문을 만들지 마십시오**(실통화에서는 키가 없습니다) |
 | `said` | — | `say` 재생이 끝났다 |
 | `prompt` | `text` · `silence` · `lowConfidence` · `spokeDuringPlayback` · `heardVoice`(gw 1.4.16.261 — 소리는 있었는데 말로 인식되지 않았다 · 무응답과 «말했는데 못 알아들음» 을 가른다) · (선택지를 줬으면) `choice` · `choiceIndex` · `choiceSource` · `confirm` · `choiceAmbiguous` · (`expect:"address"` 였으면) `address` · (긴 듣기를 **적용했으면**) `listenSeconds` | `ask` 뒤 발신자가 한 말. `silence:true` 면 아무 말도 없었다. 선택지 판정은 §3-4, 주소는 §3-5 |
 | `error` | `code` · `message` | 지시가 잘못됐다 — `unknown_type` · `text_required` · `text_too_long` · `bad_choices` · `bad_expect` · `bad_listen_seconds`. **3번 넘으면** 통화가 사람에게 간다 |
@@ -200,6 +200,24 @@ DVG 가 그 시간(**5~90초**) 동안 쉼으로 끊지 않고 말을 모아 **�
 - `choices`·`expect` 와 함께 쓸 수 없습니다(`bad_listen_seconds`). 범위 밖도 같은 오류입니다.
 - ⚠️ 창이 길수록 통화 시간(=음성인식 비용)이 늘어납니다. 꼭 필요한 질문에만 쓰십시오.
 - 🧪 시험(§5-1)은 글자 시험이라 시간이 흐르지 않습니다 — 발화 하나가 그 창 전체에 한 말로 취급됩니다.
+
+### 3-8. 설치별 설정(`setup.settings`) — gw 1.4.16.296+
+
+같은 앱이라도 **회사(설치)마다** 다른 값이 필요할 때가 있습니다(예: 안부 전화가 첫마디에 밝힐 **기관 이름**).
+앱은 **항목**을 정하고, 운영자는 DVG 대시보드에서 회사마다 **값**을 넣습니다.
+
+- **항목은 앱 등록 때 운영자에게 알려 주십시오** — 키 · 이름 · 기본값(예: `callerName` · 「기관 이름」 · 「○○구 보건소」).
+  운영자가 앱 등록에 그대로 넣습니다(키는 영문으로 시작하는 영문·숫자·`_` 32자 이하 · 10개까지).
+- 통화마다 `setup.settings` 에 **실효값**이 옵니다 — 그 회사에 넣은 값, 없으면 기본값:
+
+```json
+{"type":"setup","version":1,"callId":"1790779616.2118","orgId":"…","appId":"…","direction":"outbound","settings":{"callerName":"○○구 보건소"}}
+```
+
+- ⭐ **키가 없으면 «정하지 않음»** 입니다(값도 기본값도 없음 · 또는 이 기능이 없는 DVG 버전) — 앱이 자기 기본값을 쓰십시오.
+- 🔴 **비밀을 넣는 자리가 아닙니다** — 값은 운영자 화면과 이 메시지에 그대로 보입니다. 키·토큰은 앱의 환경변수로 받으십시오.
+- 값은 앞뒤 공백이 지워지고 줄바꿈이 없습니다(DVG 가 거절합니다). 길이는 항목마다 정한 한도 이하입니다(기본 60자).
+- 🧪 시험(§5-1)도 같은 값을 싣습니다 — 시험 요청의 `orgId`(+선택 `tenantId`)에 맞는 설치가 하나면 그 값, 아니면 기본값입니다.
 
 ## 4. 결말과 상한
 
