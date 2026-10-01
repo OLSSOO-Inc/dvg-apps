@@ -87,8 +87,8 @@ DVG → 앱   end
 |---|---|---|
 | `setup` | `version` · `callId` · `tenantId` · `orgId` · `appId` · `did` · `noticePlayed` · `direction` · `caller`(조건부) · `simulated`(조건부) · `settings`(조건부) | 통화 시작. `direction` 은 `"inbound"`(상대가 걸어왔다) 또는 `"outbound"`(DVG 가 걸었다 · gw 1.4.16.292+) — **없으면 수신**(구버전 DVG). `caller` 는 **운영자가 설치에서 발신번호 제공을 켰을 때만** 있고, 발신 통화에서도 **상대 번호**입니다(키 자체가 없으면 «제공하지 않음»). 🔴 **`simulated:true` 는 전화 없는 시험**(gw 1.4.16.259) — 그때는 **실제 주문을 만들지 마십시오**(실통화에서는 키가 없습니다) |
 | `said` | — | `say` 재생이 끝났다 |
-| `prompt` | `text` · `silence` · `lowConfidence` · `spokeDuringPlayback` · `heardVoice`(gw 1.4.16.261 — 소리는 있었는데 말로 인식되지 않았다 · 무응답과 «말했는데 못 알아들음» 을 가른다) · (선택지를 줬으면) `choice` · `choiceIndex` · `choiceSource` · `confirm` · `choiceAmbiguous` · (`expect:"address"` 였으면) `address` · (긴 듣기를 **적용했으면**) `listenSeconds` | `ask` 뒤 발신자가 한 말. `silence:true` 면 아무 말도 없었다. 선택지 판정은 §3-4, 주소는 §3-5 |
-| `error` | `code` · `message` | 지시가 잘못됐다 — `unknown_type` · `text_required` · `text_too_long` · `bad_choices` · `bad_expect` · `bad_listen_seconds`. **3번 넘으면** 통화가 사람에게 간다 |
+| `prompt` | `text` · `silence` · `lowConfidence` · `spokeDuringPlayback` · `heardVoice`(gw 1.4.16.261 — 소리는 있었는데 말로 인식되지 않았다 · 무응답과 «말했는데 못 알아들음» 을 가른다) · (선택지를 줬으면) `choice` · `choiceIndex` · `choiceSource` · `confirm` · `choiceAmbiguous` · (`expect:"address"` 였으면) `address` · (긴 듣기를 **적용했으면**) `listenSeconds` · (일찍 닫기를 **적용했으면**) `endSilenceSeconds` | `ask` 뒤 발신자가 한 말. `silence:true` 면 아무 말도 없었다. 선택지 판정은 §3-4, 주소는 §3-5 |
+| `error` | `code` · `message` | 지시가 잘못됐다 — `unknown_type` · `text_required` · `text_too_long` · `bad_choices` · `bad_expect` · `bad_listen_seconds` · `bad_end_silence_seconds`. **3번 넘으면** 통화가 사람에게 간다 |
 | `end` | `reason` | 세션 끝(§4 결말). 이 뒤로는 보내도 소용없습니다. DVG 는 `end` 뒤에 **WebSocket close(1000)** 로 연결을 닫습니다(DVG 1.4.16.275+). ⚠️ **`end` 없이 연결이 닫혀도 통화는 끝난 것입니다** — 앞에 프록시(Cloud Run 등)가 있으면 `end` 가 오기 전에 닫힐 수 있고, DVG 1.4.16.274 이하는 close 프레임 없이 끊습니다. 그때 결말은 **모른다**로 두십시오(예제 앱은 `reason:"closed"`) |
 
 ### 3-3. 앱 → DVG
@@ -96,7 +96,7 @@ DVG → 앱   end
 | type | 필드 | 동작 |
 |---|---|---|
 | `say` | `text`(필수 · 500자 이하) · `interruptible`(선택 · gw 1.4.16.261) | 끝까지 말한다(끼어들어도 멈추지 않음) → `said`. `interruptible:true` 면 **발신자가 끼어들 때 멈춘다**(듣지는 않는다 — 이어서 `ask{text:""}` 로 듣는다). ⚠️ 복창·결제 안내처럼 **끝까지 들려야 하는 말에는 쓰지 마십시오** |
-| `ask` | `text`(선택 · 500자 이하) · `choices`(선택 · 2~6개 · 각 1~20자 · 중복 없음) · `expect`(선택 · `"address"`) · `label`(선택 · `expect` 와 함께 · 1~10자) · `listenSeconds`(선택 · 5~90 · §3-7) | 질문을 말하고(발신자가 끼어들면 멈춤) **발신자 답을 듣는다** → `prompt`. `text` 가 비면 말없이 듣기만 한다. `choices` 가 규칙에 어긋나면 **묻지 않고** `error bad_choices`. `expect` 는 §3-5(`choices` 와 함께 쓰면 `bad_expect`) |
+| `ask` | `text`(선택 · 500자 이하) · `choices`(선택 · 2~6개 · 각 1~20자 · 중복 없음) · `expect`(선택 · `"address"`) · `label`(선택 · `expect` 와 함께 · 1~10자) · `listenSeconds`(선택 · 5~90 · §3-7) · `endSilenceSeconds`(선택 · 2~10 · `listenSeconds` 와 함께만 · §3-7) | 질문을 말하고(발신자가 끼어들면 멈춤) **발신자 답을 듣는다** → `prompt`. `text` 가 비면 말없이 듣기만 한다. `choices` 가 규칙에 어긋나면 **묻지 않고** `error bad_choices`. `expect` 는 §3-5(`choices` 와 함께 쓰면 `bad_expect`) |
 | `transfer` | — | **사람에게 연결**. 🔴 번호는 지정할 수 없습니다 — 그 주문 회사에 운영자가 정한 호전환 번호로 갑니다 |
 | `hangup` | `text`(선택 · 마지막 인사) | 인사 후 통화 종료 |
 
@@ -200,6 +200,23 @@ DVG 가 그 시간(**5~90초**) 동안 쉼으로 끊지 않고 말을 모아 **�
 - `choices`·`expect` 와 함께 쓸 수 없습니다(`bad_listen_seconds`). 범위 밖도 같은 오류입니다.
 - ⚠️ 창이 길수록 통화 시간(=음성인식 비용)이 늘어납니다. 꼭 필요한 질문에만 쓰십시오.
 - 🧪 시험(§5-1)은 글자 시험이라 시간이 흐르지 않습니다 — 발화 하나가 그 창 전체에 한 말로 취급됩니다.
+
+#### 말씀이 끝나면 일찍 닫기(`endSilenceSeconds`) — gw 1.4.16.304+
+
+`listenSeconds` 만 실으면 DVG 는 발신자가 말을 일찍 마쳐도 **창이 끝날 때까지** 기다립니다. 「요즘 가 보고 싶은 곳이
+있으세요?」처럼 **충분히 기다려 주되 말이 끝나면 바로 받아야 하는** 대화 질문에는 `endSilenceSeconds` 를 함께 실으십시오 —
+발신자가 **한 마디라도 한 뒤** 그 시간만큼 조용하면 창보다 일찍 닫고 답을 줍니다.
+
+```json
+{"type":"ask","text":"요즘 가 보고 싶은 곳이 있으세요?","listenSeconds":20,"endSilenceSeconds":3}
+```
+
+- 실제 전화에서 생긴 일: 발신자는 5초 만에 답을 마쳤는데 20초 창이 끝날 때까지 아무 말이 없어 「듣고 있어? 나 말 끝났다고.」가 나왔습니다.
+- **2~10초** · `listenSeconds` 보다 짧아야 하고 `listenSeconds` 없이 쓸 수 없습니다(`bad_end_silence_seconds`).
+- ⚠️ **아무 말도 없으면 일찍 닫지 않습니다** — 생각하시는 중일 수 있어서입니다. 무응답은 창이 끝날 때 `silence:true` 입니다.
+- ⚠️ 너무 짧으면 숨 고르는 사이에 잘립니다(그것이 긴 듣기를 만든 이유입니다). 「1분 동안 이름 말하기」처럼 **끝까지 모아야 하는
+  과제에는 넣지 마십시오.**
+- ⭐ 적용했으면 `prompt.endSilenceSeconds` 에 같은 값이 돌아옵니다. 키가 없으면 적용되지 않은 것이고(구버전 DVG) 창 끝까지 기다린 것입니다.
 
 ### 3-8. 설치별 설정(`setup.settings`) — gw 1.4.16.296+
 
