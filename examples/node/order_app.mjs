@@ -88,7 +88,7 @@ async function handle(ws) {
     for (const [key, question, again, choices] of [
       ['origin', '어디에서 보내시나요?', '제가 잘 못 들었습니다. 물건을 가지러 갈 곳을 말씀해 주세요.'],
       ['destination', '어디로 보내시나요?', '제가 잘 못 들었습니다. 물건을 받으실 곳을 말씀해 주세요.'],
-      ['pay', '결제는 선불인가요 착불인가요?', '제가 잘 못 들었습니다. 선불이면 「선불」. 착불이면 「착불」.', ['선불', '착불']],
+      ['pay', '선불. 착불. 결제는 어느 쪽인가요?', '제가 잘 못 들었습니다. 선불이면 「선불」. 착불이면 「착불」.', ['선불', '착불']],
     ]) {
       let answer = await s.ask(question, choices);
       if (!answer) answer = await s.ask(again, choices);

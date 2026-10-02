@@ -148,7 +148,7 @@ DVG → 앱   end
 
 - 🔴 **DVG 는 여러 곳 중 하나를 고르지 않습니다** — 잘못 고른 주소는 기사가 다른 도시로 가는 값입니다.
 - ⭐ **잘못 들린 동**(gw 1.4.16.293+) — 「고양시 덕양구 상동동」처럼 말한 구·군에 없는 동이면 DVG 가 「고양시 덕양구에서
-  상동동을 찾지 못했습니다. 배달지가 삼송동인지, 향동동인지 말씀해 주세요.」를 준다(`source:"near_dong"`). 발신자가
+  상동동을 찾지 못했습니다. 삼송동. 향동동. 배달지는 어느 쪽인가요?」를 준다(`source:"near_dong"`). 발신자가
   구·군을 따로 답한 경우(「상동동이요」 → 좁히는 질문 → 「아니요 경기도 고양시요」)도 앞 질문의 동과 합쳐 같은 질문을 준다.
   「아니요」라고 답하면 같은 목록을 다시 주지 않는다 — 그때 앱은 다른 문장으로 묻는다.
 - ⚠️ **좁히기는 바로 그 질문에만** 걸립니다 — 앱이 다른 문장으로 물으면(다음 칸 등) 새 주소로 읽습니다. 무음 뒤에 같은 질문을 다시 해도 후보는 남아 있습니다.
@@ -171,11 +171,11 @@ DVG → 앱   end
 → {"type":"prompt","text":"신천동이요","silence":false,"lowConfidence":false,"spokeDuringPlayback":false,"heardVoice":true,
    "address":{"status":"ambiguous","source":"dong_index",
               "candidates":[{"sido":"경기도","gugun":"시흥시"},{"sido":"경상북도","gugun":"경산시"},{"sido":"대구광역시","gugun":"동구"},{"sido":"서울특별시","gugun":"송파구"},{"sido":"울산광역시","gugun":"북구"}],
-              "question":"신천동이 여러 곳입니다. 배달지가 경기인지, 경북인지, 대구인지, 서울인지, 울산인지 말씀해 주세요."}}
-← {"type":"ask","text":"신천동이 여러 곳입니다. 배달지가 경기인지, 경북인지, 대구인지, 서울인지, 울산인지 말씀해 주세요.","expect":"address","label":"배달지"}
+              "question":"신천동이 여러 곳입니다. 경기. 경북. 대구. 서울. 울산. 배달지는 어느 쪽인가요?"}}
+← {"type":"ask","text":"신천동이 여러 곳입니다. 경기. 경북. 대구. 서울. 울산. 배달지는 어느 쪽인가요?","expect":"address","label":"배달지"}
 → {"type":"prompt","text":"서울이요","silence":false,"lowConfidence":false,"spokeDuringPlayback":false,"heardVoice":true,
    "address":{"status":"resolved","sido":"서울특별시","gugun":"송파구","dong":"신천동","line":"서울 송파구 신천동","source":"narrowed","verified":true}}
-← {"type":"ask","text":"꽃다발인지, 꽃바구니인지, 화환인지 말씀해 주세요.","choices":["꽃다발","꽃바구니","화환"]}
+← {"type":"ask","text":"꽃다발. 꽃바구니. 화환. 어느 쪽으로 보내 드릴까요?","choices":["꽃다발","꽃바구니","화환"]}
 → {"type":"prompt","text":"꽃바구니로 할게요","silence":false,"lowConfidence":false,"spokeDuringPlayback":false,"heardVoice":true,"choice":"꽃바구니","choiceIndex":1,"choiceSource":"exact"}
 ← {"type":"ask","text":"배달지 서울 송파구 신천동. 상품 꽃바구니. 맞으면 「네」. 틀리면 「아니요」.","choices":["네","아니요"]}
 → {"type":"prompt","text":"네","silence":false,"lowConfidence":false,"spokeDuringPlayback":false,"heardVoice":true,"choice":"네","choiceIndex":0,"choiceSource":"exact"}
