@@ -73,8 +73,8 @@ def verify_dvg(headers, signing_secret, now=None, skew=300):
 
 ```
 DVG → 앱   setup
-앱  → DVG  say | ask | transfer | hangup     ← DVG 메시지 하나당 지시 하나
-DVG → 앱   said | prompt | error
+앱  → DVG  say | ask | sms | transfer | hangup     ← DVG 메시지 하나당 지시 하나
+DVG → 앱   said | prompt | sms_result | error
 …
 DVG → 앱   end
 ```
@@ -88,6 +88,7 @@ DVG → 앱   end
 | `setup` | `version` · `callId` · `tenantId` · `orgId` · `appId` · `did` · `noticePlayed` · `direction` · `caller`(조건부) · `simulated`(조건부) · `settings`(조건부) | 통화 시작. `direction` 은 `"inbound"`(상대가 걸어왔다) 또는 `"outbound"`(DVG 가 걸었다 · gw 1.4.16.292+) — **없으면 수신**(구버전 DVG). `caller` 는 **운영자가 설치에서 발신번호 제공을 켰을 때만** 있고, 발신 통화에서도 **상대 번호**입니다(키 자체가 없으면 «제공하지 않음»). 🔴 **`simulated:true` 는 전화 없는 시험**(gw 1.4.16.259) — 그때는 **실제 주문을 만들지 마십시오**(실통화에서는 키가 없습니다) |
 | `said` | — | `say` 재생이 끝났다 |
 | `prompt` | `text` · `silence` · `lowConfidence` · `spokeDuringPlayback` · `heardVoice`(gw 1.4.16.261 — 소리는 있었는데 말로 인식되지 않았다 · 무응답과 «말했는데 못 알아들음» 을 가른다) · (선택지를 줬으면) `choice` · `choiceIndex` · `choiceSource` · `confirm` · `choiceAmbiguous` · (`expect:"address"` 였으면) `address` · (긴 듣기를 **적용했으면**) `listenSeconds` · (일찍 닫기를 **적용했으면**) `endSilenceSeconds` | `ask` 뒤 발신자가 한 말. `silence:true` 면 아무 말도 없었다. 선택지 판정은 §3-4, 주소는 §3-5 |
+| `sms_result` | `status` · `code`(선택) | `sms` 결과(gw 1.4.16.307+ · §3-9). 🔴 **실패여도 오류가 아닙니다**(위반 횟수에 세지 않습니다) |
 | `error` | `code` · `message` | 지시가 잘못됐다 — `unknown_type` · `text_required` · `text_too_long` · `bad_choices` · `bad_expect` · `bad_listen_seconds` · `bad_end_silence_seconds`. **3번 넘으면** 통화가 사람에게 간다 |
 | `end` | `reason` | 세션 끝(§4 결말). 이 뒤로는 보내도 소용없습니다. DVG 는 `end` 뒤에 **WebSocket close(1000)** 로 연결을 닫습니다(DVG 1.4.16.275+). ⚠️ **`end` 없이 연결이 닫혀도 통화는 끝난 것입니다** — 앞에 프록시(Cloud Run 등)가 있으면 `end` 가 오기 전에 닫힐 수 있고, DVG 1.4.16.274 이하는 close 프레임 없이 끊습니다. 그때 결말은 **모른다**로 두십시오(예제 앱은 `reason:"closed"`) |
 
@@ -97,8 +98,11 @@ DVG → 앱   end
 |---|---|---|
 | `say` | `text`(필수 · 500자 이하) · `interruptible`(선택 · gw 1.4.16.261) | 끝까지 말한다(끼어들어도 멈추지 않음) → `said`. `interruptible:true` 면 **발신자가 끼어들 때 멈춘다**(듣지는 않는다 — 이어서 `ask{text:""}` 로 듣는다). ⚠️ 복창·결제 안내처럼 **끝까지 들려야 하는 말에는 쓰지 마십시오** |
 | `ask` | `text`(선택 · 500자 이하) · `choices`(선택 · 2~6개 · 각 1~20자 · 중복 없음) · `expect`(선택 · `"address"`) · `label`(선택 · `expect` 와 함께 · 1~10자) · `listenSeconds`(선택 · 5~90 · §3-7) · `endSilenceSeconds`(선택 · 2~10 · `listenSeconds` 와 함께만 · §3-7) | 질문을 말하고(발신자가 끼어들면 멈춤) **발신자 답을 듣는다** → `prompt`. `text` 가 비면 말없이 듣기만 한다. `choices` 가 규칙에 어긋나면 **묻지 않고** `error bad_choices`. `expect` 는 §3-5(`choices` 와 함께 쓰면 `bad_expect`) |
+| `sms` | `text`(필수 · **80바이트** 이하 — 한글 약 40자) | **통화 상대에게 문자 한 통**(gw 1.4.16.307+ · §3-9) → `sms_result`. 🔴 받는 사람은 지정할 수 없습니다 |
 | `transfer` | — | **사람에게 연결**. 🔴 번호는 지정할 수 없습니다 — 그 주문 회사에 운영자가 정한 호전환 번호로 갑니다 |
 | `hangup` | `text`(선택 · 마지막 인사) | 인사 후 통화 종료 |
+
+⭐ **모든 지시에 `slots`(선택 · gw 1.4.16.307+)를 실을 수 있습니다** — §3-10. 운영자 화면에 «지금까지 모은 칸» 을 보여 주는 용도이고 동작은 바뀌지 않습니다.
 
 ### 3-4. 선택지(`ask.choices`) — gw 1.4.16.260+
 
@@ -240,6 +244,52 @@ DVG 가 그 시간(**5~90초**) 동안 쉼으로 끊지 않고 말을 모아 **�
 DVG 가 여전히 **앱보다 먼저** 재생하고(`setup.noticePlayed`), 앱은 끌 수 없습니다. 「AI」 또는 「인공지능」이 들어간 문구만 받습니다.
 ⚠️ 앱의 첫 문장은 고지 **바로 뒤에** 들립니다 — 고지와 같은 말을 되풀이하지 않게 지으십시오.
 
+### 3-9. 통화 상대에게 문자(`sms`) — gw 1.4.16.307+
+
+주문 내용 요약처럼 **방금 통화한 사람에게** 문자를 보낼 때 씁니다.
+
+```json
+{"type":"sms","text":"[○○꽃집] 주문접수 12345\n근조 3단 60,000원"}
+```
+```json
+{"type":"sms_result","turn":12,"status":"sent"}
+```
+
+- 🔴 **받는 사람은 그 통화의 상대로 고정**입니다 — 앱은 번호를 넣을 수 없습니다(DVG 가 스팸 발송 창구가 되지 않게).
+  발신번호 제공(`caller`)이 꺼져 있어도 보낼 수 있습니다 — 번호는 앱에 가지 않고 DVG 가 보냅니다.
+- 한 통은 **80바이트**(EUC-KR · 한글 약 40자 · 장문 문자 없음)입니다. 길면 **나눠서** 여러 번 보내십시오. **한 통화 4통까지**입니다.
+- 보내는 번호는 운영자가 그 회사에 정한 **문자 발신 내선**입니다. 회신하면 그 번호로 갑니다.
+
+| `status` | 뜻 | 앱이 할 일 |
+|---|---|---|
+| `sent` | DVG 가 내보냈다(⚠️ **배달 확인은 아닙니다**) | 「문자로 보내 드렸어요」까지만 말한다 |
+| `failed` | 보내려 했는데 실패(`code`: `too_long` = 80바이트 초과 → 나눠서 다시 · `send_failed`) | 문자를 보냈다고 말하지 않는다 |
+| `unavailable` | 이 회사에서 문자를 쓸 수 없다(발신 내선 미설정 등) | 말로 안내한다 |
+| `not_mobile` | 상대가 휴대폰이 아니다(유선·표시제한) | 말로 안내한다 |
+| `rate_limited` | 그 회사의 분당 문자 상한 | 말로 안내한다 |
+| `limit` | 이 통화의 문자 수 상한(4통) | 더 보내지 않는다 |
+| `simulated` | 시험(§5-1) — **보내지 않았다** | 실통화처럼 이어 간다 |
+
+⚠️ **구버전 DVG**(1.4.16.306 이하)는 `sms` 를 모르고 `error unknown_type` 을 줍니다 — 이것은 위반 횟수에 셉니다.
+한 번 받았으면 그 통화에서는 더 보내지 마십시오.
+
+### 3-10. 모은 칸 보여 주기(`slots`) — gw 1.4.16.307+
+
+운영자가 대시보드 📡 실시간에서 **이 통화가 무엇을 얼마나 받았는지** 보게 하려면, 지시에 지금까지의 칸 목록을 함께 싣습니다.
+
+```json
+{"type":"ask","text":"보내는 분 리본 글은 어떻게 적을까요?","slots":[
+  {"key":"kind","label":"분류","value":"근조 화환","state":"done"},
+  {"key":"addr","label":"배달지","value":"부산 사하구 ○○장례식장","state":"done"},
+  {"key":"sender","label":"보내는 분","state":"none"}]}
+```
+
+- **DVG 는 판단하지 않습니다** — 무엇이 필수이고 언제 찼는지는 앱이 압니다. 마지막에 받은 목록이 그 통화의 현재 상태입니다(바뀔 때만 실으면 됩니다).
+- `state` 는 `none`(아직) · `partial`(들었는데 확인 전) · `done`(확정) · `blocked`(여기서 사람에게 넘김). 모르는 값은 `none` 으로 봅니다.
+- 상한: 12칸 · `key` 32자 · `label` 12자 · `value` 60자(넘으면 자릅니다 · **지시는 거절하지 않습니다**). `key` 가 비거나 겹치면 그 칸은 버립니다.
+- 🔒 `value` 에는 이름·주소가 들어갑니다 — 운영자가 «값 담기» 를 꺼 두면 화면·기록에 **상태만** 보입니다.
+- 통화가 끝나면 마지막 목록이 🧾 기록에 남습니다. 구버전 DVG 는 이 필드를 무시합니다(통화는 그대로).
+
 ## 4. 결말과 상한
 
 | 결말(`end.reason`) | 뜻 | 발신자에게 |
@@ -254,7 +304,7 @@ DVG 가 여전히 **앱보다 먼저** 재생하고(`setup.noticePlayed`), 앱�
 
 앱 연결 전에 끝나는 결말(앱은 받지 못함): `app_unavailable`(연결 실패) · `quota`(월 상한 초과 — 운영자가 강제로 둔 경우).
 
-⚠️ 상한값(60회·10분·10초·500자)은 **아직 실측으로 정한 값이 아닌 출발점**입니다.
+⚠️ 상한값(60회·10분·10초·500자·문자 4통)은 **아직 실측으로 정한 값이 아닌 출발점**입니다.
 
 ## 5. 사용량 확인(앱 키)
 
