@@ -14,3 +14,7 @@ node conformance/check_node.mjs
 ```bash
 cd examples/go && go test ./...
 ```
+
+```bash
+cd examples/java && mvn -q test
+```

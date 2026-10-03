@@ -22,6 +22,10 @@ jobs:
         with: { go-version-file: examples/go/go.mod }
       - run: go vet ./... && go test ./... && go build ./...
         working-directory: examples/go
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17', cache: maven }
+      - run: mvn -B -q package
+        working-directory: examples/java
 
   # 🖥 앱 개발사 콘솔 샘플 — 외부 의존성 없음 · 가짜 DVG 로 실제 HTTP 시험.
   console:

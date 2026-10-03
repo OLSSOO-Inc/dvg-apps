@@ -53,6 +53,21 @@ def verify_dvg(headers, signing_secret, now=None, skew=300):
     return hmac.compare_digest(want, sig)
 ```
 
+- 검증 예(Java 17+ — 같은 시험 벡터로 확인했습니다 · 전체는 [examples/java](../examples/java/)):
+
+```java
+static boolean verifyDvg(Function<String, String> header, String secret, long nowSeconds) throws Exception {
+    String appId = header.apply("X-DVG-App-Id"), callId = header.apply("X-DVG-Call-Id");
+    String ts = header.apply("X-DVG-Timestamp"), sig = header.apply("X-DVG-Signature");
+    if (appId == null || callId == null || sig == null || ts == null || !ts.matches("[0-9]+")) return false;
+    if (Math.abs(nowSeconds - Long.parseLong(ts)) > 300) return false;
+    Mac mac = Mac.getInstance("HmacSHA256");
+    mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
+    String want = HexFormat.of().formatHex(mac.doFinal((appId + "\n" + callId + "\n" + ts).getBytes(StandardCharsets.UTF_8)));
+    return MessageDigest.isEqual(want.getBytes(StandardCharsets.US_ASCII), sig.getBytes(StandardCharsets.US_ASCII));
+}
+```
+
 #### 시험 벡터(구현이 맞는지 확인)
 
 | 입력 | 값 |
@@ -63,7 +78,7 @@ def verify_dvg(headers, signing_secret, now=None, skew=300):
 | `X-DVG-Timestamp` | `1790000000` |
 | **기대 `X-DVG-Signature`** | `8f5176f9494aea0ff84847a5d2a80fdac8b90de4d44633d841d4cff3b1133f9a` |
 
-같은 값이 나오지 않으면 구분자(`\n`)·인코딩(UTF-8)·16진 소문자를 확인하십시오. 이 저장소의 CI 가 두 예제로 이 벡터를 검사합니다([conformance/](../conformance/)).
+같은 값이 나오지 않으면 구분자(`\n`)·인코딩(UTF-8)·16진 소문자를 확인하십시오. 이 저장소의 CI 가 예제 네 가지(Python·Node.js·Go·Java)로 이 벡터를 검사합니다([conformance/](../conformance/)).
 
 ## 3. 메시지
 
