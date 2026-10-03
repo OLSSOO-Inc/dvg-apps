@@ -129,7 +129,7 @@ async def handler(ws):
         for key, question, again, choices in (
                 ("origin", "어디에서 보내시나요?", "제가 잘 못 들었습니다. 물건을 가지러 갈 곳을 말씀해 주세요.", None),
                 ("destination", "어디로 보내시나요?", "제가 잘 못 들었습니다. 물건을 받으실 곳을 말씀해 주세요.", None),
-                ("pay", "결제는 선불인가요 착불인가요?", "제가 잘 못 들었습니다. 선불이면 「선불」. 착불이면 「착불」.",
+                ("pay", "선불. 착불. 결제는 어느 쪽인가요?", "제가 잘 못 들었습니다. 선불이면 「선불」. 착불이면 「착불」.",
                  ["선불", "착불"])):
             answer = await ask(ws, question, choices)
             if not answer:
