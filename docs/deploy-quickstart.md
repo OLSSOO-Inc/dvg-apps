@@ -72,6 +72,26 @@ DVG 운영사에게 사이드카를 켜 달라고 하십시오(`GW_APPS_SIDECAR_
 ⚠️ `run` 은 root 소유 · 755 여야 합니다. 그룹이나 다른 사용자가 쓸 수 있으면 DVG 가 띄우지 않습니다.
 앱은 **일회용 사용자**로 돌고 DVG·PBX 디렉터리를 읽을 수 없습니다.
 
+**Java 앱이면**(예제 [examples/java](../examples/java/) · Java 17+) — 1번의 venv·pip 대신 jar 하나를 두고 `run` 을 바꿉니다:
+
+```bash
+sudo apt install -y openjdk-17-jre-headless
+```
+
+```bash
+sudo install -m 0644 -o root -g root examples/java/target/order-app.jar /opt/dvgateway/apps/<앱 id>/order-app.jar
+```
+
+```bash
+printf '#!/bin/sh\nexec java -Xmx256m -jar ./order-app.jar\n' | sudo tee /opt/dvgateway/apps/<앱 id>/run >/dev/null
+```
+
+```bash
+sudo chmod 0755 /opt/dvgateway/apps/<앱 id>/run
+```
+
+⚠️ 사이드카는 메모리 상한(기본 512M)이 있어 힙을 `-Xmx256m` 처럼 정해 두십시오. jar 는 노트북에서 `cd examples/java && mvn -q package` 로 만듭니다.
+
 ## B. 다른 서버 — nginx + systemd
 
 Ubuntu 22.04+ 기준입니다. `app.example.com` 을 여러분의 도메인으로 바꾸십시오.

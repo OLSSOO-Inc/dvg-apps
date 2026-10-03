@@ -2,6 +2,11 @@
 
 필드 추가는 버전을 올리지 않습니다(모르는 필드는 무시). **기존 앱을 깨뜨리는 변경만** 버전을 올립니다.
 
+## Java 예제 (계약 변경 없음)
+
+- [examples/java](examples/java/) — Python·Node.js·Go 와 **같은 동작**의 Java 17+ 예제(WebSocket 서버 `Java-WebSocket` · JSON `Gson` · `mvn package` 로 jar 하나).
+- 서명 확인은 시험 벡터로 검사한다(`mvn test` · CI). 계약 문서 §2 에 Java 서명 확인 예를 더했다. 사이드카 설치 문서에 Java 실행 방법을 더했다.
+
 ## 상담원 메모 `transfer.note` (DVG 1.4.16.334+) · 주소 `near_venue` (DVG 1.4.16.329+)
 
 - 필드 추가만이다(버전 불변) — `transfer` 에 `note`(상담원에게 전달할 메모)를 실으면 DVG 가 🧾 기록에 남긴다(계약 §3-12).
