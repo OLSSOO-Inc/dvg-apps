@@ -374,6 +374,35 @@ GET /api/v1/apps/self/usage?month=YYYY-MM
 
 `POST /api/v1/apps/self/simulate`(앱 키) · body `{"utterances":[…], "caller"?: "…"}` — 실통화와 같은 흐름을 등록된 relay 주소로 돌리고 대화를 글자로 돌려줍니다. 자세한 사용법은 [시작하기 §4](getting-started.md).
 
+## 5-2. 자기 통화 기록 읽기 — gw 1.4.16.335+
+
+```
+GET /api/v1/apps/self/diag?days=7&limit=50&orgId=…     Authorization: Bearer dvga_{appId}.{…}
+```
+
+DVG 가 남긴 **통화 기록**(대화 전문 · 결말 · 사람에게 넘긴 사유 · 앱이 `transfer.note` 로 보낸 메모)을 앱 키로 읽습니다.
+`days` 1~92(기본 7) · `limit` 1~500(기본 50 · 최신순) · `orgId` 는 한 회사만.
+
+🔴 **돌려주는 것은 DVG 운영자가 설치에서 «기록 공유» 를 켠 회사의 통화뿐입니다**(기본 꺼짐 — 개인정보의 제3자 제공이라 운영자가 정합니다).
+켠 곳이 없으면 `sharedInstallations: 0` · `calls: []` · `note` 로 답합니다 — «통화가 없다» 와 «공유받지 않았다» 를 가르십시오.
+
+```json
+{ "supported": true, "appId": "my-app", "days": 7, "sharedInstallations": 1,
+  "summary": { "calls": 12, … }, "returned": 12, "truncated": false, "excludedCalls": 3,
+  "keep": { "values": true, "caller": true, "dialog": true }, "retentionDays": 90,
+  "calls": [ { "at": "…", "orgId": "…", "linkedId": "…", "outcome": "transferred", "toHuman": true,
+               "dialog": [ { "from": "ai", "text": "…" }, { "from": "caller", "text": "…" } ],
+               "handoffNote": "…", "caller": "010…" } ] }
+```
+
+- 🔒 `caller`(발신번호)는 그 설치의 **«발신번호 제공»** 이 켜져 있을 때만 실립니다 — 기록 공유와 **별개**입니다.
+- 🔒 DVG 가 담지 않도록 설정한 항목(대화 · 칸 값 · 발신번호)은 기록에 **애초에 없습니다** — `keep` 이 그 상태입니다.
+  `handoffNoteWithheld: true` 는 «메모가 있었지만 담지 않음» 입니다(「메모 없음」과 다릅니다).
+- `dialog[].text` 가 빈 줄은 `note` 가 그 자리를 말합니다(`silent` · `during_playback` · `low_confidence`).
+- 📏 `excludedCalls` 는 기간 안에 있었지만 공유받지 않은 회사의 통화 **수**입니다(내용은 주지 않습니다). `truncated` 는 `limit` 에 잘렸는가입니다.
+- `supported: false` = 그 DVG 에 기록 저장이 꺼져 있다 · **502** = 기록을 읽지 못했다(0건이 아닙니다).
+- 🧪 시험 통화는 기록되지 않습니다. 보존기간은 `retentionDays` 입니다.
+
 ## 6. v1 에 없는 것
 
 - 질문마다 음성인식 힌트 바꾸기 — 앱 등록 단위 낱말만 된다(§3-4)

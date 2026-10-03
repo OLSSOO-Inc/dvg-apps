@@ -82,6 +82,14 @@ curl -sS -H "Authorization: Bearer $DVG_APP_KEY" "https://<DVG 주소>/api/v1/ap
 
 `found:false` 는 «0건» 이 아니라 **그 달에 아직 기록이 없다** 는 뜻입니다. 금액은 싣지 않습니다(수량만).
 
+**내 통화 기록**(DVG 1.4.16.335+ · 대화 · 상담원 메모):
+
+```bash
+curl -sS -H "Authorization: Bearer $DVG_APP_KEY" "https://<DVG 주소>/api/v1/apps/self/diag?days=7"
+```
+
+DVG 운영자가 설치에서 **«기록 공유»** 를 켠 회사의 통화만 옵니다(기본 꺼짐) — `sharedInstallations: 0` 이면 운영사에 요청하십시오. 자세한 필드는 [계약 §5-2](voice-relay-v1.md#5-2-자기-통화-기록-읽기--gw-1416335).
+
 ## 5. 체크리스트
 
 - [ ] 서명·타임스탬프 검증(틀리면 연결 거절) — [시험 벡터](../conformance/vector.json) 통과
