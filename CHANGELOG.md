@@ -2,6 +2,11 @@
 
 필드 추가는 버전을 올리지 않습니다(모르는 필드는 무시). **기존 앱을 깨뜨리는 변경만** 버전을 올립니다.
 
+## 자기 통화 기록 읽기 `GET /api/v1/apps/self/diag` (DVG 1.4.16.335+)
+
+- 앱 키로 DVG 가 남긴 통화 기록(대화 · 결말 · `transfer.note` 메모)을 읽는다(계약 §5-2). 계약 변경이 아니라 조회 API 추가다(버전 불변).
+- **DVG 운영자가 설치에서 «기록 공유» 를 켠 회사만** 돌려준다(기본 꺼짐). 발신번호는 «발신번호 제공» 을 따로 따른다.
+
 ## Java 예제 (계약 변경 없음)
 
 - [examples/java](examples/java/) — Python·Node.js·Go 와 **같은 동작**의 Java 17+ 예제(WebSocket 서버 `Java-WebSocket` · JSON `Gson` · `mvn package` 로 jar 하나).
