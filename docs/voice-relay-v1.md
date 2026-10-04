@@ -100,7 +100,7 @@ DVG → 앱   end
 
 | type | 필드 | 뜻 |
 |---|---|---|
-| `setup` | `version` · `callId` · `tenantId` · `orgId` · `appId` · `did` · `noticePlayed` · `direction` · `caller`(조건부) · `simulated`(조건부) · `settings`(조건부) | 통화 시작. `direction` 은 `"inbound"`(상대가 걸어왔다) 또는 `"outbound"`(DVG 가 걸었다 · gw 1.4.16.292+) — **없으면 수신**(구버전 DVG). `caller` 는 **운영자가 설치에서 발신번호 제공을 켰을 때만** 있고, 발신 통화에서도 **상대 번호**입니다(키 자체가 없으면 «제공하지 않음»). 🔴 **`simulated:true` 는 전화 없는 시험**(gw 1.4.16.259) — 그때는 **실제 주문을 만들지 마십시오**(실통화에서는 키가 없습니다) |
+| `setup` | `version` · `callId` · `tenantId` · `orgId` · `appId` · `did` · `noticePlayed` · `direction` · `caller`(조건부) · `simulated`(조건부) · `settings`(조건부) · `ringing`(조건부 · DVG 1.4.16.340+ · §3-14) | 통화 시작. `direction` 은 `"inbound"`(상대가 걸어왔다) 또는 `"outbound"`(DVG 가 걸었다 · gw 1.4.16.292+) — **없으면 수신**(구버전 DVG). `caller` 는 **운영자가 설치에서 발신번호 제공을 켰을 때만** 있고, 발신 통화에서도 **상대 번호**입니다(키 자체가 없으면 «제공하지 않음»). 🔴 **`simulated:true` 는 전화 없는 시험**(gw 1.4.16.259) — 그때는 **실제 주문을 만들지 마십시오**(실통화에서는 키가 없습니다) |
 | `said` | — | `say` 재생이 끝났다 |
 | `prompt` | `text` · `silence` · `lowConfidence` · `spokeDuringPlayback` · `heardVoice`(gw 1.4.16.261 — 소리는 있었는데 말로 인식되지 않았다 · 무응답과 «말했는데 못 알아들음» 을 가른다) · (선택지를 줬으면) `choice` · `choiceIndex` · `choiceSource` · `confirm` · `choiceAmbiguous` · (`expect:"address"` 였으면) `address` · (긴 듣기를 **적용했으면**) `listenSeconds` · (일찍 닫기를 **적용했으면**) `endSilenceSeconds` | `ask` 뒤 발신자가 한 말. `silence:true` 면 아무 말도 없었다. 선택지 판정은 §3-4, 주소는 §3-5 |
 | `sms_result` | `status` · `code`(선택) | `sms` 결과(gw 1.4.16.307+ · §3-9). 🔴 **실패여도 오류가 아닙니다**(위반 횟수에 세지 않습니다) |
@@ -377,6 +377,25 @@ DVG 가 여전히 **앱보다 먼저** 재생하고(`setup.noticePlayed`), 앱�
 - 🧪 시험 통화는 합성하지 않습니다(`accepted:0`). 이미 저장된 문장은 다시 합성하지 않습니다. 구버전 DVG 는 `error unknown_type` 입니다(통화는 계속됩니다).
 
 ⏱ 통화마다 **턴별 시간**(AI 가 말한 시간 · 끝났는지 기다린 시간 · 들은 뒤 다음 말까지)이 DVG 기록에 남고, §5-2 기록 조회의 `timing`·`summary.timing` 으로 봅니다.
+
+### 3-14. 벨 울리는 동안 받는 setup(`ringing`) — DVG 1.4.16.340+
+
+가입자 조회처럼 **첫 말 전에 시간이 걸리는 일**을 벨 소리 뒤에 숨기기 위해, DVG 는 걸려 온 통화에서 전화를 받기 **전에** setup 을 보냅니다.
+
+```
+DVG → 앱   setup {"ringing":true, "caller":"010…"(설치가 허용했을 때만), …}   ← 아직 받지 않았다(발신자는 벨을 듣는다)
+           (앱은 여기서 가입자 조회 등을 한다)
+앱  → DVG  prepare {…}        ← 받지 않고 처리 → prepared (선택)
+앱  → DVG  say | ask …        ← 첫 지시 = «준비됐다»
+           DVG 가 전화를 받고 → AI 고지 → 이 지시를 실행
+```
+
+- **준비되면 첫 지시를 보내십시오.** 그 지시가 오거나 **벨 상한**(운영자 설정 · 기본 4초)이 지나면 DVG 가 받습니다. 상한이 지나도 앱의 조회는 계속되고,
+  고지가 끝난 뒤 첫 지시를 실행합니다(그때부터 평소처럼 10초 안에 보내면 됩니다).
+- 벨 동안 온 `prepare` 는 받기 전에 처리합니다(합성도 벨 뒤로 숨는다).
+- `noticePlayed` 는 이때 **«앱의 첫 말보다 먼저 말한다»** 는 뜻입니다(아직 받지 않았으므로). 할 일은 같습니다 — 스스로 고지하지 마십시오.
+- 이 모드를 모르는 앱도 그대로 동작합니다 — setup 을 받자마자 첫 지시를 보내면 DVG 가 곧바로 받습니다(벨이 길어지지 않습니다).
+- `ringing` 이 없으면 이미 받은 통화입니다(구버전 DVG · 🧪 시험 · DVG 가 건 통화).
 
 ## 4. 결말과 상한
 
