@@ -379,6 +379,9 @@ GET /api/v1/apps/self/usage?month=YYYY-MM
 
 - 수량만 셉니다: 통화 수 · 결말별 · 테넌트별 · 연결 초 · 지시 수 · TTS 글자(캐시 적중 제외) · STT 초 · 주소 풀이(`addressLookups`) · 좌표 조회(`coordLookups`). **금액은 없습니다.**
 - `usageUnknownCalls > 0` 이면 그 달의 TTS·STT 합계는 **하한**입니다. 월 경계는 **UTC** 입니다.
+- ⏱ `averages`(DVG 1.4.16.338+) — `connectedSeconds`·`connectedCalls`(평균 통화 · 앱에 연결된 통화가 분모) · `sttSeconds`·`sttCalls`
+  (평균 음성인식 · 수량을 아는 통화가 분모). 분모가 0 이면 그 키가 없습니다(「모름」 — 0초가 아닙니다).
+  DVG 는 통화 내내 소리를 음성인식에 보내므로 음성인식 시간은 **통화 시간에 거의 비례**합니다 — 대본을 짧게 하는 것이 곧 원가 절감입니다.
 
 ## 5-1. 전화 없이 시험하기
 
