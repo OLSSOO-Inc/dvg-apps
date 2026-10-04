@@ -459,6 +459,18 @@ DVG 가 남긴 **통화 기록**(대화 전문 · 결말 · 사람에게 넘긴 
 - `supported: false` = 그 DVG 에 기록 저장이 꺼져 있다 · **502** = 기록을 읽지 못했다(0건이 아닙니다).
 - 🧪 시험 통화는 기록되지 않습니다. 보존기간은 `retentionDays` 입니다.
 
+
+## 5-3. 업무 API 토큰 중개 — DVG 1.4.16.341+
+
+```
+POST /api/v1/apps/self/token     Authorization: Bearer dvga_{appId}.{…}
+{"tenantId":"…","orgId":"…","stale"?:"<만료 응답을 받은 토큰>"}
+```
+
+운영사가 그 회사 설치에서 **토큰 중개**를 켰을 때만 동작합니다(지원: `insung`). DVG 가 그 회사의 자격증명으로 토큰을 **혼자** 받아 빌려주므로
+앱을 여러 대로 돌려도 토큰이 서로를 끊지 않습니다. 비밀 키는 오지 않습니다. `stale` 은 DVG 가 지금 쥔 토큰과 같을 때만 새로 받습니다.
+응답·오류·예제는 [외부 API 자격증명 · 토큰 §5](external-api-credentials.md#5-dvg-토큰-중개--post-apiv1appsselftoken-dvg-1416341).
+
 ## 6. v1 에 없는 것
 
 - 질문마다 음성인식 힌트 바꾸기 — 앱 등록 단위 낱말만 된다(§3-4)

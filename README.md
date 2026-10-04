@@ -41,6 +41,7 @@ DVG 가 **전화·음성인식(STT)·음성합성(TTS)·AI 고지·사람 연결
 - 📘 [시작하기](docs/getting-started.md) — 등록 받기 · 어디서 돌리나(다른 서버 / DVG 와 같은 서버) · 대화 규칙 · 시험 · 체크리스트
 - 🚀 [실서버 설치 퀵 가이드](docs/deploy-quickstart.md) — 같은 서버(사이드카) · 다른 서버(nginx `wss` + systemd) · 서버 없이(Cloud Run 컨테이너) · 콘솔 HTTPS. 설정 파일은 [`deploy/`](deploy/) 에 있고 **CI 가 실제 DVG 릴리즈로 매번 돌려 봅니다**
 - 📜 [관리형 음성 레이어 계약 v1](docs/voice-relay-v1.md) — 메시지 · 서명 · 결말 · 상한
+- 🔑 [외부 API 자격증명 · 토큰](docs/external-api-credentials.md) — 키를 어디에 두나 · 토큰 재사용 · 앱을 여러 대로 돌릴 때 · DVG 토큰 중개
 - ✅ [적합성 시험](conformance/) — 서명 시험 벡터(모든 언어가 같은 값을 받아들여야 한다)
 - 🖥 [앱 개발사 콘솔 샘플](console/) — 앱 키로 **내 앱의 사용량**을 보고 **전화 없이 시험**하는 웹 화면(위젯 단위 · 앱 키는 서버에만 · DVG 1.4.16.259+)
 - 📈 [그라파나 템플릿](grafana/) — DVG 지표(`/api/v1/metrics`)로 보는 대시보드 3개 · 프로메테우스+그라파나 실행 예제(DVG 1.4.16.271+)
