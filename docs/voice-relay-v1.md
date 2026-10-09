@@ -561,6 +561,39 @@ POST /api/v1/apps/self/token     Authorization: Bearer dvga_{appId}.{…}
 앱을 여러 대로 돌려도 토큰이 서로를 끊지 않습니다. 비밀 키는 오지 않습니다. `stale` 은 DVG 가 지금 쥔 토큰과 같을 때만 새로 받습니다.
 응답·오류·예제는 [외부 API 자격증명 · 토큰 §5](external-api-credentials.md#5-dvg-토큰-중개--post-apiv1appsselftoken-dvg-1416341).
 
+## 5-4. 앱 설정 고치기 — DVG 1.4.16.393 이상
+
+```
+GET /api/v1/apps/self       Authorization: Bearer dvga_{appId}.{…}     (지금 설정 · relayHosts 포함)
+PUT /api/v1/apps/self       Authorization: Bearer dvga_{appId}.{…}     Content-Type: application/json
+```
+
+앱 키로 자기 앱 설정을 고칩니다. **보낸 칸만** 바뀌고, 응답은 바뀐 뒤의 `app` 입니다.
+
+| 칸 | 뜻 |
+|---|---|
+| `name` | 앱 이름(1~60자) |
+| `relayUrl` · `relayUrls` | DVG 가 연결할 주소(`ws://`·`wss://` · 목록은 1~5개 · 첫 주소 = `relayUrl`) — 🔐 **허용 호스트 안에서만** |
+| `relayStrategy` | 주소가 여럿일 때 `failover`(순서대로) · `least_busy`(한가한 곳 먼저) |
+| `keyterms` | 음성인식 힌트 낱말(2~20자 · 60개까지) |
+| `settings` | 설치별 설정 **항목**(통째로 교체 · [§3-8](#3-8-설치별-설정setupsettings--dvg-1416296-이상)) — 값은 운영사가 회사마다 넣습니다 |
+| `noticeText` | AI 고지 문구(「AI」 또는 「인공지능」 포함 · 60자 이하 · `""` = 운영사 기본 문구) |
+| `simExample` | 시험 예시(한 줄 = 한 발화 · 빈 줄 = 무응답) |
+
+```bash
+curl -sS -X PUT -H "Authorization: Bearer $DVG_APP_KEY" -H 'Content-Type: application/json' \
+  -d '{"relayUrl":"wss://app.example.com/dvg-relay/v2","keyterms":["화환","화분"]}' \
+  "https://<DVG 주소>/api/v1/apps/self"
+```
+
+- 🔐 **relay 주소는 운영사가 정한 허용 호스트(`relayHosts`) 안에서만** 바뀝니다. 경로·포트는 자유입니다.
+  허용 호스트가 비어 있으면 **403 `relay_hosts_not_set`**, 밖이면 **403 `relay_host_not_allowed`**(응답에 `relayHosts`) — 운영사에 호스트 등록을 요청하십시오.
+- 위 표에 없는 칸(켜기·끄기 · 월 상한 · 허용 호스트 등)을 보내면 **400 `field_not_allowed`** 입니다(응답 `allowed` 에 고칠 수 있는 칸). 조용히 무시하지 않습니다.
+- 바꿀 칸이 없으면 **400 `nothing_to_change`** · 값이 규칙에 맞지 않으면 **400 `invalid`**(무엇이 틀렸는지 `error` 에).
+- 🔑 **키 재발급은 앱 키로 할 수 없습니다** — 키가 샌 것 같으면 운영사에 재발급을 요청하십시오(재발급하면 서명 비밀도 바뀝니다).
+- relay 주소를 바꾸면 **다음 통화부터** 새 주소로 갑니다(진행 중인 통화는 그대로). 바꾼 뒤 `simulate`(§5-1)로 확인하십시오.
+- 이전 DVG 는 **405** 를 돌려줍니다 — 그때는 운영사에 요청하십시오.
+
 ## 6. v1 에 없는 것
 
 - 질문마다 음성인식 힌트 바꾸기 — 앱 등록 단위 낱말만 된다(§3-4)

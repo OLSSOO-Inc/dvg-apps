@@ -94,6 +94,14 @@ curl -sS -X POST -H "Authorization: Bearer $DVG_APP_KEY" -H 'Content-Type: appli
 - 🔊 AI 줄에 **`toneWarning`** 이 붙으면 그 문장은 예시가 붙어 들립니다(DVG 1.4.16.308+) — 예시마다 마침표로 끊으십시오. 실통화에서는 막지 않고 그대로 말합니다.
 - ⚠️ **글자 시험입니다** — 음성인식 오인식·무음 판정·끼어들기는 재현하지 않습니다. 실통화의 `prompt.text` 는 「강남역**이요**」처럼 조사·군말이 붙어 옵니다.
 
+**설정 고치기**(DVG 1.4.16.393 이상) — relay 주소·음성인식 힌트·설정 항목·AI 고지 문구·시험 예시는 앱 키로 직접 바꿉니다:
+
+```bash
+curl -sS -X PUT -H "Authorization: Bearer $DVG_APP_KEY" -H 'Content-Type: application/json' -d '{"keyterms":["화환","화분","꽃다발"]}' "https://<DVG 주소>/api/v1/apps/self"
+```
+
+relay 주소는 운영사가 등록한 **허용 호스트 안에서만** 바뀝니다. 칸·오류 코드는 [계약 §5-4](voice-relay-v1.md#5-4-앱-설정-고치기--dvg-1416393-이상).
+
 **내 사용량**:
 
 ```bash
@@ -119,6 +127,7 @@ curl -sS -H "Authorization: Bearer $DVG_APP_KEY" "https://<DVG 주소>/api/v1/ap
 - [ ] 주소 질문은 `expect:"address"` · 여러 곳이면 DVG 의 `question` 을 그대로 · `verified:false` 면 반드시 복창 · 좌표가 필요하면 운영사에 «좌표 제공» 요청(없을 때의 처리도)
 - [ ] `end` 를 받으면 그 통화 처리를 끝낸다
 - [ ] `setup.simulated` 면 실제 주문을 만들지 않는다
+- [ ] relay 주소를 바꿨으면 `simulate` 로 새 주소에 붙는지 확인한다(허용 호스트 밖이면 403)
 - [ ] 업무 API 키는 환경변수(또는 비밀 저장소)에만 · 로그에 키·토큰·URL 쿼리를 남기지 않는다
 - [ ] 업무 API 토큰을 캐시하고, 앱을 여러 대로 돌리면 [§4 의 방법](external-api-credentials.md#4-앱을-여러-대로-돌릴-때하나뿐인-토큰-api) 중 하나를 고른다
 - [ ] 주문 등록은 재시도하지 않는다(또는 멱등 키) — 결과를 모르면 사람에게

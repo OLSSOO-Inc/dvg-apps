@@ -2,6 +2,13 @@
 
 필드 추가는 버전을 올리지 않습니다(모르는 필드는 무시). **기존 앱을 깨뜨리는 변경만** 버전을 올립니다.
 
+## 앱 설정 고치기 `PUT /api/v1/apps/self` (DVG 1.4.16.393+)
+
+- 경로 추가(계약 버전 불변). 앱 키로 `name`·`relayUrl`/`relayUrls`·`relayStrategy`·`keyterms`·`settings`·`noticeText`·`simExample` 을 고칩니다(계약 §5-4).
+- relay 주소는 운영사가 정한 허용 호스트(`relayHosts`) 안에서만. 그 밖의 칸은 `400 field_not_allowed`. 키 재발급은 운영사만.
+- `GET /api/v1/apps/self` 의 `app` 에 `relayHosts`·`keyIssued` 가 더해집니다.
+- 이전 DVG 는 405 — 운영사에 요청하십시오.
+
 ## 앞의 말 버리기 `ask.discardEarlier` (DVG 1.4.16.384+)
 
 - 필드 추가(버전 불변). `true` 면 질문을 말하기 전에 들린 발신자 말은 그 질문의 대답에서 뺍니다. 질문 도중 끼어든 말은 그대로 대답이 됩니다(계약 §3-7).
