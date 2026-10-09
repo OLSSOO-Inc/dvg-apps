@@ -1,0 +1,11 @@
+{
+  "name": "dvg-app-console-sample",
+  "private": true,
+  "type": "module",
+  "description": "DVG 앱 개발사 콘솔 샘플 — 사용량 · 시뮬레이터 (외부 의존성 없음)",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test test/*.test.mjs"
+  }
+}

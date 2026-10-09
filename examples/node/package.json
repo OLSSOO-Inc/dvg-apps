@@ -1,0 +1,12 @@
+{
+  "name": "dvg-app-example-order",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DVG 외부 앱 최소 예제 (Node.js) — 관리형 음성 레이어 v1",
+  "type": "module",
+  "main": "order_app.mjs",
+  "scripts": { "start": "node order_app.mjs" },
+  "engines": { "node": ">=18" },
+  "dependencies": { "ws": "^8.18.0" },
+  "license": "Apache-2.0"
+}

@@ -1,0 +1,26 @@
+# /etc/systemd/system/dvg-app.service — 음성 앱(예제: examples/python/order_app.py)
+#
+# 다른 언어 앱이면 ExecStart 한 줄만 바꾸십시오. 비밀(서명 비밀)은 이 파일이 아니라 app.env 에 둡니다.
+
+[Unit]
+Description=DVG voice app
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=dvgapp
+Group=dvgapp
+WorkingDirectory=/opt/dvg-app
+# DVG_APP_SIGNING_SECRET · DVG_APP_HOST · DVG_APP_PORT · DVG_APP_PATH (권한 0640 root:dvgapp)
+EnvironmentFile=/etc/dvg-app/app.env
+ExecStart=/opt/dvg-app/venv/bin/python /opt/dvg-app/order_app.py
+Restart=on-failure
+RestartSec=5
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,48 @@
+name: check
+on: [push, pull_request]
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - uses: actions/setup-node@v4
+        with: { node-version: '22' }
+      - run: pip install -r examples/python/requirements.txt
+      - run: python -m py_compile examples/python/order_app.py examples/python/slot_app.py
+      - run: for f in scenarios/*.json; do python slot_app.py --check "$f"; done
+        working-directory: examples/python
+      - run: python conformance/check_python.py
+      - run: npm ci
+        working-directory: examples/node
+      - run: node --check examples/node/order_app.mjs
+      - run: node conformance/check_node.mjs
+      - uses: actions/setup-go@v5
+        with: { go-version-file: examples/go/go.mod }
+      - run: go vet ./... && go test ./... && go build ./...
+        working-directory: examples/go
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '17', cache: maven }
+      - run: mvn -B -q package
+        working-directory: examples/java
+
+  # 🖥 앱 개발사 콘솔 샘플 — 외부 의존성 없음 · 가짜 DVG 로 실제 HTTP 시험.
+  console:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: for f in server.mjs public/*.js public/lib/*.js public/widgets/*.js; do node --check "$f"; done
+        working-directory: console
+      - run: npm test
+        working-directory: console
+
+  # 🚀 배포 파일 — 사이드카 실행 파일 문법 검사.
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 스크립트 검사
+        run: shellcheck -S warning deploy/sidecar/run
