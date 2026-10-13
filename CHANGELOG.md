@@ -2,6 +2,11 @@
 
 필드 추가는 버전을 올리지 않습니다(모르는 필드는 무시). **기존 앱을 깨뜨리는 변경만** 버전을 올립니다.
 
+## Rust 예제 · 안내 (문서만)
+
+- 계약 변경 없음. [`examples/rust`](examples/rust/) 추가 — 다른 예제와 같은 주문 접수 흐름 · 서명 확인을 WebSocket 업그레이드 **전에** 한다 · `cargo test` 가 [시험 벡터](conformance/vector.json)를 확인합니다.
+- CI 가 Rust 예제도 검사합니다(서식 · 린트 · 시험 · 릴리스 빌드).
+
 ## 앱 설정 고치기 `PUT /api/v1/apps/self` (DVG 1.4.16.393+)
 
 - 경로 추가(계약 버전 불변). 앱 키로 `name`·`relayUrl`/`relayUrls`·`relayStrategy`·`keyterms`·`settings`·`noticeText`·`simExample` 을 고칩니다(계약 §5-4).

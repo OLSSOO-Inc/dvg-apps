@@ -18,3 +18,7 @@ cd examples/go && go test ./...
 ```bash
 cd examples/java && mvn -q test
 ```
+
+```bash
+cd examples/rust && cargo test
+```

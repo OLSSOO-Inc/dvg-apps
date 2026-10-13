@@ -63,6 +63,9 @@ exec java -Xmx256m -jar ./order-app.jar
 
 jar 는 `cd examples/java && mvn -q package` 로 만듭니다.
 
+**Rust 앱이면**(예제 [examples/rust](../examples/rust/)) — 바이너리 하나를 `run` 이라는 이름으로 전달하면 됩니다(셸 스크립트가 필요 없습니다).
+DVG 서버와 같은 CPU·운영체제로 빌드하고, 다른 기계에서 빌드한다면 정적 링크(`--target x86_64-unknown-linux-musl`)를 권합니다 — [Rust 안내](../examples/rust/README.md#사이드카같은-서버로-돌리기).
+
 ## B. 다른 서버 — nginx + systemd
 
 Ubuntu 22.04+ 기준입니다. `app.example.com` 을 여러분의 도메인으로 바꾸십시오.
