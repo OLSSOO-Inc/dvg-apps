@@ -1,0 +1,23 @@
+[package]
+name = "dvg-order-app"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "DVG 외부 앱 최소 예제 (Rust) — 음성 주문 접수 · 관리형 음성 레이어 v1"
+
+[[bin]]
+name = "order-app"
+path = "src/main.rs"
+
+[dependencies]
+futures-util = { version = "0.3", default-features = false, features = ["sink", "std"] }
+hex = "0.4"
+hmac = "0.12"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sha2 = "0.10"
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "time"] }
+tokio-tungstenite = "0.26"
+
+[profile.release]
+strip = true

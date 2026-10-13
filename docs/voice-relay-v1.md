@@ -78,7 +78,7 @@ static boolean verifyDvg(Function<String, String> header, String secret, long no
 | `X-DVG-Timestamp` | `1790000000` |
 | **기대 `X-DVG-Signature`** | `8f5176f9494aea0ff84847a5d2a80fdac8b90de4d44633d841d4cff3b1133f9a` |
 
-같은 값이 나오지 않으면 구분자(`\n`)·인코딩(UTF-8)·16진 소문자를 확인하십시오. 이 저장소의 CI 가 예제 네 가지(Python·Node.js·Go·Java)로 이 벡터를 검사합니다([conformance/](../conformance/)).
+같은 값이 나오지 않으면 구분자(`\n`)·인코딩(UTF-8)·16진 소문자를 확인하십시오. 이 저장소의 CI 가 예제 다섯 가지(Python·Node.js·Go·Java·Rust)로 이 벡터를 검사합니다([conformance/](../conformance/)).
 
 ## 3. 메시지
 
