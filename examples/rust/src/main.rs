@@ -207,7 +207,11 @@ fn register_order(order: &BTreeMap<&str, String>, setup: &In) -> bool {
 async fn handle(ws: WebSocketStream<TcpStream>) -> Result<(), AppError> {
     let mut s = Session { ws };
     let setup = s.recv().await?; // 첫 메시지는 항상 setup
-    println!("통화 시작 {} (발신번호 제공={})", setup.call_id, setup.caller.is_some());
+    println!(
+        "통화 시작 {} (발신번호 제공={})",
+        setup.call_id,
+        setup.caller.is_some()
+    );
     let mut order: BTreeMap<&str, String> = BTreeMap::new();
     // (칸, 첫 질문, 다시 물을 때의 질문, 선택지) — 🔴 같은 문장을 되풀이하지 않는다. 다시 물을 때는 질문을 바꾼다.
     let steps: [(&str, &str, &str, &[&str]); 3] = [
@@ -346,7 +350,10 @@ mod tests {
                 ("x-dvg-timestamp", ts.to_string()),
                 ("x-dvg-signature", sig.to_string()),
             ] {
-                h.insert(HeaderName::from_static(k), HeaderValue::from_str(&val).unwrap());
+                h.insert(
+                    HeaderName::from_static(k),
+                    HeaderValue::from_str(&val).unwrap(),
+                );
             }
             h
         };
@@ -356,10 +363,22 @@ mod tests {
         for (name, got, want) in [
             ("벡터를 받아들인다", verify_dvg(&good, &secret, ts), true),
             ("틀린 서명은 거절", verify_dvg(&bad, &secret, ts), false),
-            ("틀린 비밀은 거절", verify_dvg(&good, "other-secret", ts), false),
+            (
+                "틀린 비밀은 거절",
+                verify_dvg(&good, "other-secret", ts),
+                false,
+            ),
             ("대문자 서명은 거절", verify_dvg(&upper, &secret, ts), false),
-            ("300초 넘게 지난 연결은 거절", verify_dvg(&good, &secret, ts + 301), false),
-            ("300초 이내는 받는다", verify_dvg(&good, &secret, ts + 300), true),
+            (
+                "300초 넘게 지난 연결은 거절",
+                verify_dvg(&good, &secret, ts + 301),
+                false,
+            ),
+            (
+                "300초 이내는 받는다",
+                verify_dvg(&good, &secret, ts + 300),
+                true,
+            ),
         ] {
             assert_eq!(got, want, "{name}");
         }
