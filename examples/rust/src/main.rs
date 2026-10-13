@@ -265,7 +265,8 @@ fn reject(code: StatusCode, body: &str) -> ErrorResponse {
     r
 }
 
-#[allow(clippy::field_reassign_with_default)] // WebSocketConfig 는 non_exhaustive — 필드만 바꾼다
+// WebSocketConfig 는 non_exhaustive — 필드만 바꾼다 · 콜백의 오류 형식(ErrorResponse)은 라이브러리가 정한다.
+#[allow(clippy::field_reassign_with_default, clippy::result_large_err)]
 async fn serve(stream: TcpStream, secret: String, path: String) {
     // WebSocket 업그레이드 전에 거른다 — 서명이 틀리면 연결 자체를 받지 않는다.
     let check = move |req: &Request, resp: Response| -> Result<Response, ErrorResponse> {
