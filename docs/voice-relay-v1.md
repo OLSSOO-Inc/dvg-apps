@@ -100,7 +100,7 @@ DVG → 앱   end
 
 | type | 필드 | 뜻 |
 |---|---|---|
-| `setup` | `version` · `callId` · `tenantId` · `orgId` · `appId` · `did` · `noticePlayed` · `direction` · `caller`(조건부) · `simulated`(조건부) · `settings`(조건부) · `ringing`(조건부 · DVG 1.4.16.340 이상 · §3-14) · `staff`(조건부 · DVG 1.4.16.362 이상 · §3-15) | 통화 시작. `direction` 은 `"inbound"`(상대가 걸어왔다) 또는 `"outbound"`(DVG 가 걸었다 · DVG 1.4.16.292 이상) — **없으면 수신**(구버전 DVG). `caller` 는 **운영사가 설치에서 발신번호 제공을 켰을 때만** 있고, 발신 통화에서도 **상대 번호**입니다(키 자체가 없으면 «제공하지 않음»). 🔴 **`simulated:true` 는 전화 없는 시험**(DVG 1.4.16.259 이상) — 그때는 **실제 주문을 만들지 마십시오**(실통화에서는 키가 없습니다) |
+| `setup` | `version` · `callId` · `tenantId` · `orgId` · `appId` · `did` · `noticePlayed` · `direction` · `caller`(조건부) · `simulated`(조건부) · `settings`(조건부) · `ringing`(조건부 · DVG 1.4.16.340 이상 · §3-14) · `staff`(조건부 · DVG 1.4.16.362 이상 · §3-15) · `channel`(조건부 · DVG 1.4.16.412 이상 · §3-17) | 통화 시작. `direction` 은 `"inbound"`(상대가 걸어왔다) 또는 `"outbound"`(DVG 가 걸었다 · DVG 1.4.16.292 이상) — **없으면 수신**(구버전 DVG). `caller` 는 **운영사가 설치에서 발신번호 제공을 켰을 때만** 있고, 발신 통화에서도 **상대 번호**입니다(키 자체가 없으면 «제공하지 않음»). 🔴 **`simulated:true` 는 전화 없는 시험**(DVG 1.4.16.259 이상) — 그때는 **실제 주문을 만들지 마십시오**(실통화에서는 키가 없습니다) |
 | `said` | — | `say` 재생이 끝났다 |
 | `prompt` | `text` · `silence` · `lowConfidence` · `spokeDuringPlayback` · `heardVoice`(DVG 1.4.16.261 이상 — 소리는 있었는데 말로 인식되지 않았다 · 무응답과 «말했는데 못 알아들음» 을 가른다) · (선택지를 줬으면) `choice` · `choiceIndex` · `choiceSource` · `confirm` · `choiceAmbiguous` · (`expect:"address"` 였으면) `address` · (`expect:"birth"` 였으면 · DVG 1.4.16.372 이상) `birth` · (긴 듣기를 **적용했으면**) `listenSeconds` · (일찍 닫기를 **적용했으면**) `endSilenceSeconds` | `ask` 뒤 발신자가 한 말. `silence:true` 면 아무 말도 없었다. 선택지 판정은 §3-4, 주소는 §3-5, 생년월일은 §3-16 |
 | `sms_result` | `status` · `code`(선택) | `sms` 결과(DVG 1.4.16.307 이상 · §3-9). 🔴 **실패여도 오류가 아닙니다**(위반 횟수에 세지 않습니다) |
@@ -486,6 +486,43 @@ setup 에 실어 줍니다. 근무 시간은 운영사가 회사마다 정합니
 - `choices`·`listenSeconds` 와 함께 쓸 수 있습니다 · `label` 은 쓸 수 없습니다(`bad_expect`).
 - 🔒 `heard`·`chart` 는 개인정보입니다 — 앱 쪽 저장·로그에 주의하십시오. 대화를 DVG 기록에 남기지 않으려면 운영사에 앱 등록의 «대화를 남기지 않습니다» 를 요청하십시오.
 - ⚠️ 1.4.16.371 이하 DVG 는 `expect:"birth"` 를 `bad_expect` 로 거절합니다 — 그때는 `expect` 를 빼고 같은 질문을 다시 보내고 답(`text`)을 직접 읽으십시오.
+
+### 3-17. 웹 채팅(`setup.channel:"chat"`) — DVG 1.4.16.412 이상
+
+운영사가 앱에 «채팅 위젯 허용» 을 켜면, 고객사 웹페이지 오른쪽 아래 **채팅 위젯**의 대화도 **같은 앱**이 받습니다.
+메시지·순서·상한은 전화와 같고, 앱은 `setup.channel` 로 구분합니다.
+
+```json
+→ {"type":"setup","version":1,"callId":"…","tenantId":"…","orgId":"flower-01","appId":"flower-app","did":"","noticePlayed":true,"direction":"inbound","channel":"chat"}
+```
+
+- `channel` 키가 **없으면 전화**입니다(이전 DVG 와 같습니다). 지금 값은 `"chat"` 하나이고, 모르는 값은 전화로 다루지 말고 **상담만** 하십시오.
+- ⭐ **채팅은 상담·안내용입니다.** 🔴 `channel:"chat"` 이면 **실제 주문·결제를 만들지 마십시오** — 그 단계가 되면 `transfer` 를 보내십시오.
+  웹에는 통신사가 보증하는 발신번호가 없어, 번호로 회원을 찾아 주문을 받으면 **남의 번호로 그 사람의 정보를 보거나 주문**할 수 있습니다.
+  채팅에서 `transfer` 는 방문자에게 **「📞 전화로 이어서 상담하기」 버튼**(운영사가 정한 번호)으로 보이고, 전화로 걸어 오면 같은 앱이 받습니다.
+- 채팅에 맞는 일: 자주 묻는 질문(영업시간·가격·배송 지역) · 주문 전 상담 · 대화 자체가 서비스인 앱.
+
+| | 전화 | 채팅 |
+|---|---|---|
+| `caller` | 운영사가 켰을 때 | **없습니다** — 방문자가 적은 번호는 확인되지 않은 값입니다. 그 번호로 저장된 정보를 보여 주지 마십시오 |
+| `did` | 걸려 온 번호 | 빈 문자열 |
+| `say`·`ask` | 말로 들립니다 | 말풍선으로 보입니다 — 전화용으로 쓴 문장(낱말마다 마침표)을 그대로 써도 자연스럽게 읽힙니다 |
+| `ask.choices` | 말로 읽습니다 | **버튼**으로도 보입니다 — 버튼을 누르든 글자로 치든 같은 판정을 거쳐 `prompt` 가 옵니다 |
+| `prompt` | 음성인식 결과 | 방문자가 친 글자(최대 500자) · `heardVoice:true` · 무음 `prompt` 는 오지 않습니다(빈 메시지는 DVG 가 버립니다 · DVG 1.4.16.413 이상 — 1.4.16.412 에서는 드물게 올 수 있으니 전화처럼 다루십시오) |
+| 오래 아무 말 없음 | 무음 `prompt` | 방문자가 한동안 입력하지 않으면 DVG 가 대화를 닫습니다 → `end` `caller_hangup` |
+| 방문자가 창을 닫음 | — | `end` `caller_hangup` |
+| `transfer` | 운영사가 정한 번호로 연결 | 📞 전화 버튼을 보여 주고 대화가 끝납니다 → `end` `transferred` |
+| `transfer.note`·`hangup.note` | 상담원 메모 | 받을 상담원이 없어 **전달되지 않습니다** |
+| `sms` | 통화 상대에게 | 보낼 번호가 없어 `sms_result` `unavailable` |
+| `expect:"address"`·`expect:"birth"` | 같습니다 | 같습니다(글자라 더 정확합니다) |
+| `listenSeconds`·`endSilenceSeconds`·`prepare` | 적용 | 영향이 없습니다(보내도 오류가 아닙니다) |
+| `staff` | §3-15 | 올 수 있습니다. `callback` 은 `false` 입니다(연락드릴 번호가 없습니다) |
+| AI 고지 | DVG 가 먼저 말합니다 | DVG 가 첫 말풍선으로 먼저 보여 줍니다(`noticePlayed`) |
+
+- 한 대화는 최대 30분이고, 방문자 메시지 수·동시 대화 수에 상한이 있습니다(초과는 DVG 가 막습니다 · 앱이 할 일은 없습니다).
+- DVG 는 채팅 대화 내용을 저장하지 않으며, 채팅은 앱 사용량(§5) 통화 수에 들어가지 않습니다.
+- 🔒 앱 쪽에서도 채팅 내용을 필요 이상 남기지 마십시오.
+- 이전 DVG 에는 채팅 위젯이 없습니다 — 앱이 따로 대비할 것은 없습니다.
 
 ## 4. 결말과 상한
 

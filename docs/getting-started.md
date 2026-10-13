@@ -72,6 +72,7 @@
 | 사람 연결 번호를 정하지 않는다 | `transfer` 는 운영사가 정한 번호로만 간다(통화료 사기 방지) |
 | AI 고지를 하지 않는다 | DVG 가 앱보다 먼저 이미 했다(`setup.noticePlayed`) |
 | `setup.simulated` 가 `true` 면 **실제 주문을 만들지 않는다** | 전화 없는 시험이다 |
+| `setup.channel` 이 `"chat"` 이면 **실제 주문을 만들지 않고** 그 단계에서 `transfer` | 웹 채팅은 상담·안내용이다 — 발신번호가 없어 회원을 확인할 수 없다. `transfer` 는 방문자에게 📞 전화 버튼으로 보인다(계약 §3-17) |
 | 가입자 조회는 **setup 을 받자마자** 시작하고 다 되면 첫 지시 | 걸려 온 통화의 setup 은 **벨 울리는 동안** 온다(`ringing:true` · 계약 §3-14) — 조회 시간이 벨 뒤에 숨는다 |
 | 사람에게 넘기기 전 `setup.staff.handoffNotice` 가 있으면 붙여 말하기 | 근무 시간 밖이면 «바로 받지 못할 수 있어요 … 내일 오전 9시 이후에 연락드릴게요» — 발신자가 곧 연락이 오는 줄 오해하지 않는다(계약 §3-15) |
 | 업무 API 토큰은 **캐시해서 재사용** · 만료 때만 다시 받는다 | 호출마다 받으면 느리고, «하나뿐인 토큰» API 는 서로를 끊는다 — [외부 API 자격증명](external-api-credentials.md) |
@@ -127,6 +128,7 @@ curl -sS -H "Authorization: Bearer $DVG_APP_KEY" "https://<DVG 주소>/api/v1/ap
 - [ ] 주소 질문은 `expect:"address"` · 여러 곳이면 DVG 의 `question` 을 그대로 · `verified:false` 면 반드시 복창 · 좌표가 필요하면 운영사에 «좌표 제공» 요청(없을 때의 처리도)
 - [ ] `end` 를 받으면 그 통화 처리를 끝낸다
 - [ ] `setup.simulated` 면 실제 주문을 만들지 않는다
+- [ ] `setup.channel:"chat"` 이면 실제 주문을 만들지 않고 `transfer` · 방문자가 적은 번호로 저장된 정보를 보여 주지 않는다
 - [ ] relay 주소를 바꿨으면 `simulate` 로 새 주소에 붙는지 확인한다(허용 호스트 밖이면 403)
 - [ ] 업무 API 키는 환경변수(또는 비밀 저장소)에만 · 로그에 키·토큰·URL 쿼리를 남기지 않는다
 - [ ] 업무 API 토큰을 캐시하고, 앱을 여러 대로 돌리면 [§4 의 방법](external-api-credentials.md#4-앱을-여러-대로-돌릴-때하나뿐인-토큰-api) 중 하나를 고른다
