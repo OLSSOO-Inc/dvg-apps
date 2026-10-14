@@ -102,7 +102,7 @@ DVG → 앱   end
 |---|---|---|
 | `setup` | `version` · `callId` · `tenantId` · `orgId` · `appId` · `did` · `noticePlayed` · `direction` · `caller`(조건부) · `simulated`(조건부) · `settings`(조건부) · `ringing`(조건부 · DVG 1.4.16.340 이상 · §3-14) · `staff`(조건부 · DVG 1.4.16.362 이상 · §3-15) · `channel`(조건부 · DVG 1.4.16.412 이상 · §3-17) · `visitor`(조건부 · 채팅에서만 · DVG 1.4.16.423 이상 · §3-17) · `member`(조건부 · 채팅에서만 · DVG 1.4.16.426 이상 · §3-17) | 통화 시작. `direction` 은 `"inbound"`(상대가 걸어왔다) 또는 `"outbound"`(DVG 가 걸었다 · DVG 1.4.16.292 이상) — **없으면 수신**(구버전 DVG). `caller` 는 **운영사가 설치에서 발신번호 제공을 켰을 때만** 있고, 발신 통화에서도 **상대 번호**입니다(키 자체가 없으면 «제공하지 않음»). 🔴 **`simulated:true` 는 전화 없는 시험**(DVG 1.4.16.259 이상) — 그때는 **실제 주문을 만들지 마십시오**(실통화에서는 키가 없습니다) |
 | `said` | — | `say` 재생이 끝났다 |
-| `prompt` | `text` · `silence` · `lowConfidence` · `spokeDuringPlayback` · `heardVoice`(DVG 1.4.16.261 이상 — 소리는 있었는데 말로 인식되지 않았다 · 무응답과 «말했는데 못 알아들음» 을 가른다) · (선택지를 줬으면) `choice` · `choiceIndex` · `choiceSource` · `confirm` · `choiceAmbiguous` · (`expect:"address"` 였으면) `address` · (`expect:"birth"` 였으면 · DVG 1.4.16.372 이상) `birth` · (긴 듣기를 **적용했으면**) `listenSeconds` · (일찍 닫기를 **적용했으면**) `endSilenceSeconds` | `ask` 뒤 발신자가 한 말. `silence:true` 면 아무 말도 없었다. 선택지 판정은 §3-4, 주소는 §3-5, 생년월일은 §3-16 |
+| `prompt` | `text` · `silence` · `lowConfidence` · `spokeDuringPlayback` · `heardVoice`(DVG 1.4.16.261 이상 — 소리는 있었는데 말로 인식되지 않았다 · 무응답과 «말했는데 못 알아들음» 을 가른다) · (선택지를 줬으면) `choice` · `choiceIndex` · `choiceSource` · `confirm` · `choiceAmbiguous` · (`expect:"address"` 였으면) `address` · (`expect:"birth"` 였으면 · DVG 1.4.16.372 이상) `birth` · (채팅에서 방문자가 사진을 보냈으면 · DVG 1.4.16.428 이상) `image` · (긴 듣기를 **적용했으면**) `listenSeconds` · (일찍 닫기를 **적용했으면**) `endSilenceSeconds` | `ask` 뒤 발신자가 한 말. `silence:true` 면 아무 말도 없었다. 선택지 판정은 §3-4, 주소는 §3-5, 생년월일은 §3-16 |
 | `sms_result` | `status` · `code`(선택) | `sms` 결과(DVG 1.4.16.307 이상 · §3-9). 🔴 **실패여도 오류가 아닙니다**(위반 횟수에 세지 않습니다) |
 | `error` | `code` · `message` | 지시가 잘못됐다 — `unknown_type` · `text_required` · `text_too_long` · `bad_choices` · `bad_expect` · `bad_listen_seconds` · `bad_end_silence_seconds`. **3번 넘으면** 통화가 사람에게 간다 |
 | `end` | `reason` | 세션 끝(§4 결말). 이 뒤로는 보내도 소용없습니다. DVG 는 `end` 뒤에 **WebSocket close(1000)** 로 연결을 닫습니다(DVG 1.4.16.275 이상). ⚠️ **`end` 없이 연결이 닫혀도 통화는 끝난 것입니다** — 앞에 프록시(Cloud Run 등)가 있으면 `end` 가 오기 전에 닫힐 수 있고, DVG 1.4.16.274 이하는 close 프레임 없이 끊습니다. 그때 결말은 **모른다**로 두십시오(예제 앱은 `reason:"closed"`) |
@@ -529,6 +529,30 @@ setup 에 실어 줍니다. 근무 시간은 운영사가 회사마다 정합니
 - 🔴 함께 오는 `setup.visitor`(이름·연락처)는 **여전히 `verified:false`** 입니다 — 회원 정보는 반드시 **`member.id` 로만** 찾으십시오. 전화번호로 찾으면 다른 사람의 정보가 나갈 수 있습니다.
 - 🔴 **채팅에서 실제 주문·결제를 만들지 않는 규칙은 그대로입니다** — 확인된 회원이라도 그 단계가 되면 `transfer` 를 보내십시오.
 - `verified` 는 언제나 `true` 입니다(확인되지 않으면 `member` 키가 오지 않습니다).
+
+#### `prompt.image` — 방문자가 보낸 사진(청첩장·부고) (DVG 1.4.16.428 이상)
+
+운영사가 위젯에서 **사진 받기**를 켜면 방문자가 사진을 보낼 수 있습니다. 사진 한 장은 **한 턴**이고, DVG 가 사진을 한 번 읽어 칸 값으로 `prompt.image` 에 싣습니다.
+
+```json
+→ {"type":"prompt","text":"[사진] 결혼식 · 그랜드웨딩 3층 그랜드홀 · 2026년 11월 1일 오후 1시 · 신랑 김철수 · 신부 이영희","heardVoice":true,
+   "image":{"read":true,"kind":"wedding","venue":"그랜드웨딩","hall":"3층 그랜드홀","date":"2026-11-01","time":"13:00","groom":"김철수","bride":"이영희"}}
+```
+
+| 칸 | 뜻 |
+|---|---|
+| `read` | `true` = 읽은 칸이 있다 · `false` = 사진은 왔지만 읽지 못했다(그때 `text` 는 «[사진] 사진을 보냈어요(내용은 읽지 못했어요)») |
+| `kind` | `wedding` · `funeral` · `other` |
+| `venue` · `hall` · `room` · `address` | 예식장·장례식장 이름 · 예식 홀/층 · 빈소 호실 · 사진에 적힌 주소 |
+| `date` · `time` | `YYYY-MM-DD` · `HH:MM`(24시간) — 사진에 연도가 없으면 `date` 가 없습니다 |
+| `groom` · `bride` · `groomParents` · `brideParents` | 결혼식일 때만 |
+| `deceased` · `chiefMourner` | 장례일 때만(고인 · 상주) |
+
+- 🔴 **사진 속 글자를 읽은 값입니다 — 반드시 방문자에게 확인받으십시오**(예: 「그랜드웨딩 3층 그랜드홀, 11월 1일 오후 1시 맞으세요?」). 모르는 칸은 오지 않습니다.
+- 🔴 **채팅에서 실제 주문·결제를 만들지 않는 규칙은 그대로입니다** — 확인받은 칸을 `transfer.note` 에 정리해 넘기십시오. 사진은 DVG 가 상담원에게 함께 넘깁니다.
+- 계좌번호·전화번호는 오지 않습니다(DVG 가 읽지 않습니다).
+- `image` 를 모르는 앱도 `text` 의 «[사진] …» 글로 읽을 수 있습니다.
+- 주소가 필요하면 `venue` 를 `expect:"address"` 질문의 답처럼 쓰지 말고, 방문자에게 확인받은 뒤 그 이름으로 다시 물으십시오(§3-5).
 
 | | 전화 | 채팅 |
 |---|---|---|
