@@ -130,6 +130,7 @@ curl -sS -H "Authorization: Bearer $DVG_APP_KEY" "https://<DVG 주소>/api/v1/ap
 - [ ] `setup.simulated` 면 실제 주문을 만들지 않는다
 - [ ] `setup.channel:"chat"` 이면 실제 주문을 만들지 않고 `transfer` · 방문자가 적은 번호로 저장된 정보를 보여 주지 않는다
 - [ ] `setup.visitor` 는 `verified:false` — 이름으로 부르기·상담원 메모에만 쓰고 회원 조회·주문에는 쓰지 않는다
+- [ ] `setup.member` 가 오면 회원 정보는 `member.id` 로만 찾는다 · 그래도 채팅에서는 주문·결제를 만들지 않는다
 - [ ] relay 주소를 바꿨으면 `simulate` 로 새 주소에 붙는지 확인한다(허용 호스트 밖이면 403)
 - [ ] 업무 API 키는 환경변수(또는 비밀 저장소)에만 · 로그에 키·토큰·URL 쿼리를 남기지 않는다
 - [ ] 업무 API 토큰을 캐시하고, 앱을 여러 대로 돌리면 [§4 의 방법](external-api-credentials.md#4-앱을-여러-대로-돌릴-때하나뿐인-토큰-api) 중 하나를 고른다
