@@ -2,6 +2,12 @@
 
 필드 추가는 버전을 올리지 않습니다(모르는 필드는 무시). **기존 앱을 깨뜨리는 변경만** 버전을 올립니다.
 
+## 날짜·시각 `ask.expect:"date"` (DVG 1.4.16.445+)
+
+- 값 추가(버전 불변). `expect:"date"` 로 물으면 DVG 가 답을 날짜·시각으로 읽어 `prompt.date`(`date`·`time`·들은 칸·`ambiguities`·`confirm`)에 싣습니다(계약 §3-19).
+- `dateProfile` 은 `"upcoming"`(기본 · 배송·예약) · `"past"`(지난 날). `confirm:true` 면 다시 읽어 확인받으십시오.
+- 이전 DVG 는 `error bad_expect` — `expect`·`dateProfile` 을 빼고 다시 물으십시오.
+
 ## 채팅 사진 `prompt.image` (DVG 1.4.16.428+)
 
 - 필드 추가(버전 불변). 운영사가 위젯에서 사진 받기를 켜고 방문자가 사진(청첩장·부고)을 보내면, 그 턴의 `prompt` 에 `image`(DVG 가 읽은 칸 값 · `read`)가 오고 `text` 는 «[사진] …» 요약입니다(계약 §3-17).

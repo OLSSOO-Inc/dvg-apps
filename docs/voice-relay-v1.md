@@ -102,7 +102,7 @@ DVG → 앱   end
 |---|---|---|
 | `setup` | `version` · `callId` · `tenantId` · `orgId` · `appId` · `did` · `noticePlayed` · `direction` · `caller`(조건부) · `simulated`(조건부) · `settings`(조건부) · `ringing`(조건부 · DVG 1.4.16.340 이상 · §3-14) · `staff`(조건부 · DVG 1.4.16.362 이상 · §3-15) · `channel`(조건부 · DVG 1.4.16.412 이상 · §3-17) · `visitor`(조건부 · 채팅에서만 · DVG 1.4.16.423 이상 · §3-17) · `member`(조건부 · 채팅에서만 · DVG 1.4.16.426 이상 · §3-17) · `departments`(조건부 · DVG 1.4.16.429 이상 · §3-18) | 통화 시작. `direction` 은 `"inbound"`(상대가 걸어왔다) 또는 `"outbound"`(DVG 가 걸었다 · DVG 1.4.16.292 이상) — **없으면 수신**(구버전 DVG). `caller` 는 **운영사가 설치에서 발신번호 제공을 켰을 때만** 있고, 발신 통화에서도 **상대 번호**입니다(키 자체가 없으면 «제공하지 않음»). 🔴 **`simulated:true` 는 전화 없는 시험**(DVG 1.4.16.259 이상) — 그때는 **실제 주문을 만들지 마십시오**(실통화에서는 키가 없습니다) |
 | `said` | — | `say` 재생이 끝났다 |
-| `prompt` | `text` · `silence` · `lowConfidence` · `spokeDuringPlayback` · `heardVoice`(DVG 1.4.16.261 이상 — 소리는 있었는데 말로 인식되지 않았다 · 무응답과 «말했는데 못 알아들음» 을 가른다) · (선택지를 줬으면) `choice` · `choiceIndex` · `choiceSource` · `confirm` · `choiceAmbiguous` · (`expect:"address"` 였으면) `address` · (`expect:"birth"` 였으면 · DVG 1.4.16.372 이상) `birth` · (채팅에서 방문자가 사진을 보냈으면 · DVG 1.4.16.428 이상) `image` · (긴 듣기를 **적용했으면**) `listenSeconds` · (일찍 닫기를 **적용했으면**) `endSilenceSeconds` | `ask` 뒤 발신자가 한 말. `silence:true` 면 아무 말도 없었다. 선택지 판정은 §3-4, 주소는 §3-5, 생년월일은 §3-16 |
+| `prompt` | `text` · `silence` · `lowConfidence` · `spokeDuringPlayback` · `heardVoice`(DVG 1.4.16.261 이상 — 소리는 있었는데 말로 인식되지 않았다 · 무응답과 «말했는데 못 알아들음» 을 가른다) · (선택지를 줬으면) `choice` · `choiceIndex` · `choiceSource` · `confirm` · `choiceAmbiguous` · (`expect:"address"` 였으면) `address` · (`expect:"birth"` 였으면 · DVG 1.4.16.372 이상) `birth` · (`expect:"date"` 였으면 · DVG 1.4.16.445 이상) `date` · (채팅에서 방문자가 사진을 보냈으면 · DVG 1.4.16.428 이상) `image` · (긴 듣기를 **적용했으면**) `listenSeconds` · (일찍 닫기를 **적용했으면**) `endSilenceSeconds` | `ask` 뒤 발신자가 한 말. `silence:true` 면 아무 말도 없었다. 선택지 판정은 §3-4, 주소는 §3-5, 생년월일은 §3-16, 날짜는 §3-19 |
 | `sms_result` | `status` · `code`(선택) | `sms` 결과(DVG 1.4.16.307 이상 · §3-9). 🔴 **실패여도 오류가 아닙니다**(위반 횟수에 세지 않습니다) |
 | `error` | `code` · `message` | 지시가 잘못됐다 — `unknown_type` · `text_required` · `text_too_long` · `bad_choices` · `bad_expect` · `bad_listen_seconds` · `bad_end_silence_seconds` · `unknown_department`(§3-18). **3번 넘으면** 통화가 사람에게 간다 |
 | `end` | `reason` | 세션 끝(§4 결말). 이 뒤로는 보내도 소용없습니다. DVG 는 `end` 뒤에 **WebSocket close(1000)** 로 연결을 닫습니다(DVG 1.4.16.275 이상). ⚠️ **`end` 없이 연결이 닫혀도 통화는 끝난 것입니다** — 앞에 프록시(Cloud Run 등)가 있으면 `end` 가 오기 전에 닫힐 수 있고, DVG 1.4.16.274 이하는 close 프레임 없이 끊습니다. 그때 결말은 **모른다**로 두십시오(예제 앱은 `reason:"closed"`) |
@@ -112,7 +112,7 @@ DVG → 앱   end
 | type | 필드 | 동작 |
 |---|---|---|
 | `say` | `text`(필수 · 500자 이하) · `interruptible`(선택 · DVG 1.4.16.261 이상) | 끝까지 말한다(끼어들어도 멈추지 않음) → `said`. `interruptible:true` 면 **발신자가 끼어들 때 멈춘다**(듣지는 않는다 — 이어서 `ask{text:""}` 로 듣는다). ⚠️ 복창·결제 안내처럼 **끝까지 들려야 하는 말에는 쓰지 마십시오** |
-| `ask` | `text`(선택 · 500자 이하) · `choices`(선택 · 2~6개 · 각 1~20자 · 중복 없음) · `expect`(선택 · `"address"` · `"phone"`(DVG 1.4.16.339 이상 · §3-13) · `"birth"`(DVG 1.4.16.372 이상 · §3-16)) · `label`(선택 · `expect` 와 함께 · 1~10자) · `listenSeconds`(선택 · 5~90 · §3-7) · `endSilenceSeconds`(선택 · 2~10 · `listenSeconds` 와 함께만 · §3-7) · `discardEarlier`(선택 · `true` · DVG 1.4.16.384 이상 · §3-7) | 질문을 말하고(발신자가 끼어들면 멈춤) **발신자 답을 듣는다** → `prompt`. `text` 가 비면 말없이 듣기만 한다. `choices` 가 규칙에 어긋나면 **묻지 않고** `error bad_choices`. `expect` 는 §3-5(`choices` 와 함께 쓰면 `bad_expect` — 단 `"birth"` 는 함께 쓴다 · §3-16) |
+| `ask` | `text`(선택 · 500자 이하) · `choices`(선택 · 2~6개 · 각 1~20자 · 중복 없음) · `expect`(선택 · `"address"` · `"phone"`(DVG 1.4.16.339 이상 · §3-13) · `"birth"`(DVG 1.4.16.372 이상 · §3-16) · `"date"`(DVG 1.4.16.445 이상 · §3-19)) · `dateProfile`(선택 · `expect:"date"` 와 함께 · `"upcoming"`·`"past"` · §3-19) · `label`(선택 · `expect` 와 함께 · 1~10자) · `listenSeconds`(선택 · 5~90 · §3-7) · `endSilenceSeconds`(선택 · 2~10 · `listenSeconds` 와 함께만 · §3-7) · `discardEarlier`(선택 · `true` · DVG 1.4.16.384 이상 · §3-7) | 질문을 말하고(발신자가 끼어들면 멈춤) **발신자 답을 듣는다** → `prompt`. `text` 가 비면 말없이 듣기만 한다. `choices` 가 규칙에 어긋나면 **묻지 않고** `error bad_choices`. `expect` 는 §3-5(`choices` 와 함께 쓰면 `bad_expect` — 단 `"birth"` 는 함께 쓴다 · §3-16) |
 | `sms` | `text`(필수 · **80바이트** 이하 — 한글 약 40자) | **통화 상대에게 문자 한 통**(DVG 1.4.16.307 이상 · §3-9) → `sms_result`. 🔴 받는 사람은 지정할 수 없습니다 |
 | `transfer` | `note`(선택 · 1,000자 이하 · DVG 1.4.16.334 이상 · §3-12) · `department`(선택 · DVG 1.4.16.429 이상 · §3-18) | **사람에게 연결**. 🔴 번호는 지정할 수 없습니다 — 그 주문 회사에 운영사가 정한 호전환 번호로 갑니다. `note` 는 상담원에게 전달할 메모(DVG 기록에 남는다) |
 | `hangup` | `text`(선택 · 마지막 인사) · `note`(선택 · DVG 1.4.16.336 이상 · §3-12) | 인사 후 통화 종료 |
@@ -607,6 +607,35 @@ setup 에 실어 줍니다. 근무 시간은 운영사가 회사마다 정합니
 - 둘 이상이 들리면 고르지 말고 되물으십시오(`ask.choices` 에 부서 이름).
 - `key` 는 이름이 바뀌어도 그대로입니다 — 이름이 아니라 `key` 를 보내십시오.
 - ⚠️ 구버전 DVG(1.4.16.428 이하)는 `department` 를 모르고 회사 번호로 연결합니다.
+
+### 3-19. 날짜·시각(`ask.expect:"date"`) — DVG 1.4.16.445 이상
+
+(`→` DVG→앱 · `←` 앱→DVG — §3-6 과 같다) 날짜·시각을 묻는 `ask` 에 `"expect":"date"` 를 실으면 **DVG 가 답을 날짜·시각으로 읽어** `prompt.date` 에 싣습니다.
+한자어·고유어 숫자(「시월 이십사일」·「세 시 반」), 「오늘·내일·모레」, 요일(「다음 주 토요일」), 「쯤」을 알아듣습니다.
+
+```json
+← {"type":"ask","text":"언제 받으실까요?","expect":"date"}
+→ {"type":"prompt","text":"내일 오후 세 시요",
+   "date":{"heard":true,"profile":"upcoming","date":"2026-10-17","weekday":6,"time":"15:00",
+           "year":2026,"month":10,"day":17,"hour":15,"minute":0,"confirm":true}}
+```
+
+| `dateProfile` | 읽는 방식 |
+|---|---|
+| `"upcoming"`(기본) | 앞으로 올 날(배송·예약) — 「내일」·「토요일」·「24일」도 날짜가 됩니다(지난 날이면 다음 달·내년) · 오전/오후 없는 1~6시는 **오후**로 봅니다 |
+| `"past"` | 지난 날(가입일·사고일 등) — 연·월·일을 **다 들어야** `date` 가 생깁니다 · 두 자리 연도는 두 세기가 다 가능하면 묻습니다 |
+
+- `date`(YYYY-MM-DD)는 **달력에 있는 날로 정해졌을 때만** 옵니다 · `weekday` 는 그 날의 요일(0=일 … 6=토) · `time` 은 HH:MM(24시간 · 분을 안 말하면 `:00`).
+- `year`·`month`·`day`·`hour`·`minute` 은 **들었거나 날짜로 정해진 칸만** 옵니다(모르는 칸은 키가 없습니다 · 시각을 들었으면 분을 안 말해도 `minute:0`) · `approx`(「쯤」) · `lunarHint`(음력 달 이름을 들었다 — 양력으로 바꾸지 않았습니다).
+- `ambiguities`: 물어서 풀어야 할 것 — `kind` 가 `ampm`(오전/오후) · `century`(두 자리 연도) · `dayTens`(「21」이 20일인지 21일인지) · `vagueTime`(「아침에」처럼 몇 시인지 없음) 등.
+  날·세기가 모호하면 `date` 를, 오전/오후가 모호하면 `time` 을 정하지 않습니다 — 그것부터 물으십시오.
+- 🔴 **`confirm:true` 면 다시 읽어 확인받으십시오**(들은 것이 있으면 언제나 참입니다) — 전화 음성의 숫자는 틀리기 쉽고, upcoming 은 오후를 가정합니다.
+- 무음이면 `date` 키가 없고, 말은 했는데 날짜·시각이 없으면 `"heard":false` 입니다.
+- 「오늘·내일」은 **한국 시각** 날짜입니다.
+- 한 마디 단위입니다 — 날짜와 시각을 따로 물었으면 두 답을 앱이 합치십시오. 「21일이 아니라 20일」처럼 한 마디 안에서 고쳐 말한 것은 뒤쪽을 씁니다.
+- `listenSeconds` 와 함께 쓸 수 있습니다 · `choices`·`label` 과 함께 쓰면 `bad_expect` · `dateProfile` 을 `expect:"date"` 없이 쓰거나 모르는 값이면 `bad_expect`.
+- 생년월일·태어난 시각·성별까지 받아 원국이 필요하면 §3-16(`expect:"birth"`)을 쓰십시오.
+- ⚠️ 1.4.16.444 이하 DVG 는 `expect:"date"` 를 `bad_expect` 로 거절합니다 — 그때는 `expect`·`dateProfile` 을 빼고 같은 질문을 다시 보내고 답(`text`)을 직접 읽으십시오.
 
 ## 4. 결말과 상한
 
