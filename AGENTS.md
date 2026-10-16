@@ -50,6 +50,7 @@
 | 주소 | `ask.expect:"address"` → `prompt.address` · 여러 곳이면 `address.question` 을 **글자 그대로** 다시 묻는다 — 계약 §3-5 |
 | 전화번호를 불러 받기 | `ask.expect:"phone"` — 계약 §3-13 |
 | 생년월일 | `ask.expect:"birth"` — 계약 §3-16 |
+| 날짜·시각(배송일·예약 시각) | `ask.expect:"date"`(+`dateProfile`) → `prompt.date` · `confirm:true` 면 복창 · `ambiguities` 부터 묻는다 — 계약 §3-23 |
 | 생각하며 길게 말하는 답 | `ask.listenSeconds` (+ `endSilenceSeconds`) — 계약 §3-7 |
 | 이 물음의 대답이 될 낱말을 음성인식에 알리기 | `ask.keyterms`(`choices` 는 저절로 힌트) — 계약 §3-19 · 힌트 없이도 동작해야 한다 |
 | 사람 연결·근무 시간 안내 | `transfer`(+`note`) · `setup.staff.handoffNotice` — 계약 §3-12 · §3-15 |

@@ -2,6 +2,13 @@
 
 필드 추가는 버전을 올리지 않습니다(모르는 필드는 무시). **기존 앱을 깨뜨리는 변경만** 버전을 올립니다.
 
+## 날짜·시각 `ask.expect:"date"` (DVG 1.4.16.445+)
+
+- 값 추가(버전 불변). `expect:"date"` 로 물으면 DVG 가 답을 날짜·시각으로 읽어 `prompt.date`(`date`·`time`·들은 칸·`ambiguities`·`confirm`)에 싣습니다(계약 §3-23).
+- `dateProfile` 은 `"upcoming"`(기본 · 배송·예약) · `"past"`(지난 날). `confirm:true` 면 다시 읽어 확인받으십시오.
+- 이전 DVG 는 `error bad_expect` — `expect`·`dateProfile` 을 빼고 다시 물으십시오.
+- [`tools/local_dvg.py`](tools/local_dvg.py) 가 `expect:"date"`·`dateProfile` 형식을 DVG 와 같이 검사합니다(날짜 풀이는 하지 않습니다 — 답을 직접 적을 수 있습니다).
+
 ## 한 사람에게 설치된 앱 `setup.install` (DVG 1.4.18.76+)
 
 - 필드 추가(버전 불변). 운영사가 앱을 **한 사람**에게 설치하면 그 사람에게 오는 전화가 앱으로 오고, setup 에
