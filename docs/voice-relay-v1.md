@@ -178,7 +178,7 @@ DVG → 앱   end
 
 **좌표(선택)** — 앱마다 자기 좌표 체계(자체 지오코더·배차 시스템)가 있을 수 있어 **기본으로는 좌표를 싣지 않습니다.** DVG 좌표가 필요하면
 운영사에 **앱 등록의 「좌표 제공」** 을 요청하십시오. 켜진 앱에는 `resolved` 일 때 `coord:{lon, lat, source}`(WGS84 십진 도)와 `coordStatus`
-(`ok` · `ambiguous` · `unknown` · `unavailable`)가 붙습니다. ⚠️ **좌표는 동 단위**(번지 반영 없음)이고 출처(`source`)를 밝힙니다.
+(`ok` · `ambiguous` · `unknown` · `unavailable` · `limited`(DVG 1.4.16.446 이상 — 이 앱의 하루 외부 조회 상한에 닿아 좌표만 건너뛰었다 · 주소 판정은 그대로))가 붙습니다. ⚠️ **좌표는 동 단위**(번지 반영 없음)이고 출처(`source`)를 밝힙니다.
 못 얻으면 **좌표 없이** 주소만 갑니다 — 좌표를 필수로 쓰는 앱은 `coord` 가 없을 때의 처리를 두십시오.
 
 ### 3-6. 대화 예 — 꽃 배달 한 통(JSON 전부)
@@ -633,6 +633,11 @@ GET /api/v1/apps/self/usage?month=YYYY-MM
 
 - 수량만 셉니다: 통화 수 · 결말별 · 테넌트별 · 연결 초 · 지시 수 · TTS 글자(캐시 적중 제외) · STT 초 · 주소 풀이(`addressLookups`) · 좌표 조회(`coordLookups`). **금액은 없습니다.**
 - `usageUnknownCalls > 0` 이면 그 달의 TTS·STT 합계는 **하한**입니다. 월 경계는 **UTC** 입니다.
+- 🧮 `usage.forces`(DVG 1.4.16.446 이상) — 포스별 사용 횟수: `address`(주소 풀이) · `address_building`(건물명 검색 · 외부 조회) ·
+  `coord`(좌표 · 외부 조회) · `phone` · `birth` · `date` · `choices`. 쓰지 않은 포스는 키가 없습니다. 이전 DVG 에서 쌓인 통화는 포함되지 않습니다(그 달은 하한).
+- 🧮 `forceLimit` — 외부 조회(`externalKeys`)의 **앱별 하루 상한**: `mode`(`observe` 기록만 · `enforce` 넘으면 그날 외부 조회만 건너뜀 · `off`) ·
+  `dailyMax`(0 = 없음) · `today`(오늘 · 한국 날짜 · DVG 재시작 이후만 셉니다). 상한에 닿아도 **통화와 주소 판정은 계속**됩니다 —
+  건물명 검색 없이 풀리고 좌표는 `coordStatus:"limited"` 입니다.
 - ⏱ `averages`(DVG 1.4.16.338 이상) — `connectedSeconds`·`connectedCalls`(평균 통화 · 앱에 연결된 통화가 분모) · `sttSeconds`·`sttCalls`
   (평균 음성인식 · 수량을 아는 통화가 분모). 분모가 0 이면 그 키가 없습니다(「모름」 — 0초가 아닙니다).
   음성인식 시간은 **통화 시간에 거의 비례**합니다 — 대본을 짧게 하는 것이 곧 원가 절감입니다.
