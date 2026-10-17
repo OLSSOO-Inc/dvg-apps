@@ -29,6 +29,16 @@ jobs:
           sleep 2
           DVG_SIGNING_SECRET=ci-secret python tools/local_dvg.py --expect completed "강남역" "판교" "자동이요" "네"
           kill "$APP"; wait "$APP" || true
+      - name: local_dvg — 꽃 배달 · DVG 답을 적은 파일(주소 좁히기) · --live
+        run: |
+          DVG_SIGNING_SECRET=ci-secret DVG_APP_SCENARIO=examples/python/scenarios/flower.json python examples/python/slot_app.py > /tmp/app.log 2>&1 & APP=$!
+          sleep 2
+          DVG_SIGNING_SECRET=ci-secret python tools/local_dvg.py --expect completed --file tools/calls/flower-narrowed.json
+          DVG_SIGNING_SECRET=ci-secret python tools/local_dvg.py --live --expect completed --file tools/calls/flower-narrowed.json
+          kill "$APP"; wait "$APP" || true
+          # 시험 통화는 등록을 건너뛰고(--live 아님) --live 는 등록 함수를 부른다 — 각각 정확히 한 번
+          test "$(grep -c '시험 통화 — 등록 건너뜀' /tmp/app.log)" = 1
+          test "$(grep -c '등록(예제)' /tmp/app.log)" = 1
       - run: npm ci
         working-directory: examples/node
       - run: node --check examples/node/order_app.mjs

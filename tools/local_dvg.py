@@ -5,9 +5,11 @@ DVG 처럼 서명 헤더를 붙여 앱에 WebSocket 으로 연결하고, 발신�
 선택지 규칙 · 끝맺음 — 를 그 자리에서 알려 줍니다.
 
 ⚠️ 이것은 흉내입니다. 진짜 DVG 와 다른 점(그래서 마지막 확인은 반드시 운영사 DVG 의 `simulate` 로 합니다):
-- 주소 풀이(`expect:"address"`)를 하지 않습니다 — `address.status:"unavailable"` 을 돌려줘 앱이 «주소 풀이를 못 쓰는 설치» 경로로 갑니다.
-- 생년월일(`expect:"birth"`)·전화번호(`expect:"phone"`) 풀이를 하지 않습니다.
-- 선택지는 **글자가 그대로 들어 있을 때만** 고릅니다(초성 추정 없음).
+- 주소 풀이(`expect:"address"`)를 하지 않습니다 — 기본은 `address.status:"unavailable"`(«주소 풀이를 못 쓰는 설치»)입니다.
+  DVG 가 줄 답을 **직접 적어** 시험할 수 있습니다(아래 «발화 파일»).
+- 생년월일(`expect:"birth"`)·전화번호(`expect:"phone"`) 풀이를 하지 않습니다(필요하면 역시 직접 적습니다).
+- 선택지는 **글자가 그대로 들어 있을 때만** 고릅니다(초성 추정 없음 — 초성 추정 결과도 직접 적을 수 있습니다).
+- 문자(`sms`)는 보내지 않고 `sent` 로만 답합니다.
 - 말투 점검은 간이판입니다(쉼표로 이은 나열만 봅니다). 정식 점검은 `simulate` 의 `toneWarning` 입니다.
 
 실행(앱을 먼저 띄운 뒤 다른 창에서):
@@ -16,6 +18,16 @@ DVG 처럼 서명 헤더를 붙여 앱에 WebSocket 으로 연결하고, 발신�
 
 발화를 파일로 줄 수도 있습니다(JSON 배열):
     DVG_SIGNING_SECRET=test-secret python3 tools/local_dvg.py --file my_call.json
+
+발화 파일의 항목은 문자열이거나, **DVG 가 그 발화에 붙일 답을 적은 객체**입니다(계약 §3-2 의 `prompt` 필드):
+    ["송파구 신천동",
+     {"text": "신천동이요", "address": {"status": "ambiguous", "candidates": [...], "question": "신천동이 여러 곳입니다. 서울. 경기. 배달지는 어느 쪽인가요?"}},
+     {"text": "서울이요", "address": {"status": "resolved", "sido": "서울특별시", "gugun": "송파구", "dong": "신천동", "line": "서울 송파구 신천동", "verified": true}},
+     {"text": "참불", "choice": "착불", "choiceSource": "initial", "confirm": true}]
+⚠️ 적은 값은 흉내가 아니라 **여러분이 정한 답**입니다 — 진짜 DVG 가 그렇게 답하는지는 `simulate` 로 확인하십시오.
+
+`--live` 를 주면 «시험 통화»(`setup.simulated`) 표시 없이 보냅니다 — 앱이 **실제로 주문을 등록**하는 경로까지 돕니다.
+🔴 앱의 업무 API 주소를 **개발용(가짜) 서버**로 바꿔 놓고만 쓰십시오. 운영 API 에 붙어 있으면 진짜 주문이 생깁니다.
 
 빈 문자열("")은 «무응답» 입니다. 발화를 다 쓰고 앱이 또 물으면 «발신자가 끊음» 으로 끝납니다.
 종료 코드: 0 = 위반·말투 경고 없이 끝남 · 1 = 위반 또는 말투 경고가 있었다(또는 `--expect` 와 다른 결말) · 2 = 연결 실패.
@@ -63,6 +75,30 @@ def tone_warning(text, choices=None):
     return ""
 
 
+# 발화 파일 객체에 적을 수 있는 키 — 계약 §3-2 의 prompt 필드
+CHOICE_KEYS = {"choice", "choiceIndex", "choiceSource", "confirm", "choiceAmbiguous"}
+SCRIPT_KEYS = {"text", "address", "birth", "image", "lowConfidence", "spokeDuringPlayback", "heardVoice"} | CHOICE_KEYS
+ADDRESS_STATUS = {"resolved", "ambiguous", "partial", "unknown", "unavailable"}
+
+
+def load_utterances(items):
+    """발화 목록 검사 — 틀린 키(오타)는 조용히 무시하지 않고 멈춘다(무시하면 시험이 엉뚱한 것을 시험한다)."""
+    if not isinstance(items, list):
+        raise SystemExit("발화는 배열이어야 합니다")
+    for i, u in enumerate(items, 1):
+        if isinstance(u, str):
+            continue
+        if not isinstance(u, dict) or not isinstance(u.get("text", ""), str):
+            raise SystemExit(f"발화 {i}: 문자열이거나 {{\"text\": …}} 객체여야 합니다")
+        bad = set(u) - SCRIPT_KEYS
+        if bad:
+            raise SystemExit(f"발화 {i}: 모르는 키 {sorted(bad)} — 쓸 수 있는 키: {sorted(SCRIPT_KEYS)}")
+        a = u.get("address")
+        if a is not None and (not isinstance(a, dict) or a.get("status") not in ADDRESS_STATUS):
+            raise SystemExit(f"발화 {i}: address.status 는 {sorted(ADDRESS_STATUS)} 중 하나")
+    return items
+
+
 def pick_choice(text, choices):
     hits = [i for i, c in enumerate(choices) if c in text]
     if len(hits) == 1:
@@ -74,7 +110,7 @@ def pick_choice(text, choices):
 
 class Session:
     def __init__(self, utterances, direction):
-        self.utter = list(utterances)
+        self.utter = [u if isinstance(u, dict) else {"text": u} for u in utterances]
         self.turn = 0
         self.directives = 0
         self.errors = 0
@@ -149,14 +185,28 @@ class Session:
             if not self.utter:
                 self.out("📞 발신자", "(끊음 — 준비한 발화를 다 썼습니다)")
                 return None, "caller_hangup"
-            said = self.utter.pop(0)
-            self.out("🙋 발신자", said if said else "(무응답)")
+            item = self.utter.pop(0)
+            said = item.get("text", "")
+            scripted = {k: v for k, v in item.items() if k != "text"}
+            self.out("🙋 발신자", (said if said else "(무응답)") + ("  [적어 둔 DVG 답: " + ", ".join(sorted(scripted)) + "]" if scripted else ""))
             p = {"type": "prompt", "text": said, "silence": said == "", "lowConfidence": False,
                  "spokeDuringPlayback": False, "heardVoice": said != ""}
-            if choices and said:
+            if choices and said and not (CHOICE_KEYS & scripted.keys()):
                 p.update(pick_choice(said, choices))
-            if expect == "address":
-                p["address"] = {"status": "unavailable", "reason": "local_dvg"}  # 흉내는 주소를 풀지 않는다
+            if "address" in scripted and expect != "address":
+                # 진짜 DVG 는 expect:"address" 가 없는 질문에 주소 풀이를 싣지 않는다
+                self.violate("이 발화에 주소 답을 적어 두었는데 앱이 expect:\"address\" 없이 물었다 — 주소는 expect:\"address\" 로 물으십시오")
+                scripted.pop("address")
+            if CHOICE_KEYS & scripted.keys() and not choices:
+                self.violate("이 발화에 선택지 답을 적어 두었는데 앱이 choices 없이 물었다")
+                for k in CHOICE_KEYS:
+                    scripted.pop(k, None)
+            if "birth" in scripted and expect != "birth":
+                self.violate("이 발화에 생년월일 답을 적어 두었는데 앱이 expect:\"birth\" 없이 물었다")
+                scripted.pop("birth")
+            if expect == "address" and "address" not in scripted:
+                p["address"] = {"status": "unavailable", "reason": "local_dvg"}  # 적어 두지 않았으면 «풀이를 못 쓰는 설치»
+            p.update(scripted)
             return p, None
         if kind == "sms":
             t = m.get("text") or ""
@@ -191,7 +241,7 @@ class Session:
         return {"type": "error", "code": "unknown_type", "message": f"모르는 type: {kind!r}"}, None
 
 
-async def run(url, app_id, secret, utterances, direction, settings, expect=None):
+async def run(url, app_id, secret, utterances, direction, settings, expect=None, live=False, caller="01000000000"):
     call_id = f"{int(time.time())}.local"
     ts = str(int(time.time()))
     headers = {
@@ -209,8 +259,11 @@ async def run(url, app_id, secret, utterances, direction, settings, expect=None)
         return 2
 
     setup = {"type": "setup", "version": 1, "callId": call_id, "tenantId": "local", "orgId": "local-org",
-             "appId": app_id, "did": "07000000000", "noticePlayed": True, "direction": direction,
-             "simulated": True, "caller": "01000000000"}
+             "appId": app_id, "did": "07000000000", "noticePlayed": True, "direction": direction}
+    if not live:
+        setup["simulated"] = True  # 시험 통화 — 앱은 실제 주문을 만들지 않아야 한다
+    if caller:
+        setup["caller"] = caller
     if settings:
         setup["settings"] = settings
     reason = None
@@ -271,6 +324,9 @@ def main():
     ap.add_argument("--outbound", action="store_true", help="DVG 가 건 통화(setup.direction=outbound)로 흉내")
     ap.add_argument("--expect", choices=["completed", "transferred", "caller_hangup"],
                     help="기대 결말 — 다르면 종료 코드 1(명세서의 대화 예마다 적어 두면 회귀 시험이 된다)")
+    ap.add_argument("--live", action="store_true",
+                    help="시험 통화 표시(simulated) 없이 보낸다 — 실제 등록 경로까지 돈다. 🔴 개발용 업무 API 에만")
+    ap.add_argument("--caller", default="01000000000", help="setup.caller(발신번호) · 빈 값이면 싣지 않는다(«발신번호 제공 안 함»)")
     ap.add_argument("--settings", help='설치별 설정 JSON(예: \'{"shopName":"꽃마을"}\')')
     a = ap.parse_args()
     secret = os.environ.get("DVG_SIGNING_SECRET") or os.environ.get("DVG_APP_SIGNING_SECRET")
@@ -280,10 +336,12 @@ def main():
     if a.file:
         with open(a.file, encoding="utf-8") as f:
             utter = json.load(f)
-        if not isinstance(utter, list) or not all(isinstance(u, str) for u in utter):
-            raise SystemExit("--file 은 문자열 배열이어야 합니다")
+    utter = load_utterances(utter)
     settings = json.loads(a.settings) if a.settings else None
-    sys.exit(asyncio.run(run(a.url, a.app_id, secret, utter, "outbound" if a.outbound else "inbound", settings, a.expect)))
+    if a.live:
+        print("⚠️ --live: 시험 통화 표시 없이 보냅니다 — 앱이 실제로 주문을 등록합니다. 앱이 개발용 업무 API 에 붙어 있는지 확인하십시오.\n", flush=True)
+    sys.exit(asyncio.run(run(a.url, a.app_id, secret, utter, "outbound" if a.outbound else "inbound",
+                             settings, a.expect, a.live, a.caller)))
 
 
 if __name__ == "__main__":
