@@ -243,7 +243,10 @@ DVG_SIGNING_SECRET=test-secret python3 tools/local_dvg.py --expect completed "�
 | 종료 코드 | `0` 위반·경고 없음 · `1` 있음(또는 `--expect` 와 다른 결말) · `2` 연결 실패(앱이 안 떴거나 서명 비밀이 다름) |
 | `--expect` | 기대 결말 `completed`(접수 후 끊음) · `transferred`(사람에게) · `caller_hangup`(발신자가 끊음). ⚠️ **꼭 주십시오** — 엉뚱한 칸에서 사람에게 넘어가도 계약 위반은 아니라서, 결말을 보지 않으면 «위반 0건» 으로 통과합니다 |
 
-| `--caller` | 발신번호(기본 `01000000000`) · `--caller ""` 면 «발신번호 제공 안 함» 으로 시험 |
+| `--caller` | 발신번호(기본 `01000000000`) · `--caller ""` 면 «발신번호 제공 안 함» 으로 시험. ⚠️ 발신번호로 **고객을 조회하는 앱**은 시험 통화에서도 조회 API 를 부릅니다(읽기라 정상) — 그런 앱은 `--live` 가 아니어도 처음부터 가짜 업무 API 를 띄워 두십시오 |
+| `--chat` | 웹 채팅으로(`setup.channel:"chat"` · 발신번호 없음) — 앱은 주문을 만들지 않고 `transfer` 해야 합니다 |
+| `--off-duty` | 상담원 근무 시간 밖으로(`setup.staff` · 계약 §3-15 의 예) — 넘기기 전 `handoffNotice` 를 붙이는지 봅니다 |
+| `--setup '{…}'` | setup 에 필드를 덧붙인다(계약 §3-2) |
 | `--live` | «시험 통화» 표시 없이 보냅니다 — 앱이 **실제로 등록**하는 경로를 돕니다. 🔴 앱의 업무 API 주소를 **개발용(가짜) 서버**로 바꿔 둔 뒤에만 |
 
 발화를 파일로 두면 반복하기 쉽습니다 — 명세서 §7 의 대화를 JSON 배열로 저장하십시오.
@@ -269,7 +272,8 @@ DVG_SIGNING_SECRET=test-secret python3 tools/local_dvg.py --expect completed --f
 ]
 ```
 
-- 그대로 쓸 수 있는 예: [`tools/calls/flower-narrowed.json`](../tools/calls/flower-narrowed.json)(꽃 배달 · 신천동 좁히기).
+- 그대로 쓸 수 있는 예: [`tools/calls/flower-narrowed.json`](../tools/calls/flower-narrowed.json)(꽃 배달 · 신천동 좁히기) · [`tools/calls/address-unknown.json`](../tools/calls/address-unknown.json)(주소를 못 알아들음 두 번).
+- 🔴 **주소를 못 알아듣는 경우는 반드시 이렇게 적어 돌리십시오.** 적지 않으면 «주소 풀이를 쓸 수 없는 설치» 로 답하므로, 그때 원문을 받는 앱은 「어 그게」 도 주소로 받아 시험이 엉뚱하게 끝납니다.
 - 앱이 `expect:"address"` 없이 물었는데 주소 답을 적어 두었으면 **위반**으로 짚습니다(주소는 `expect:"address"` 로 묻는 것이 규칙입니다). 오타 키는 시작 전에 멈춥니다.
 - ⚠️ 적은 값은 **여러분이 정한 답**입니다. 진짜 DVG 가 그렇게 답하는지는 5. simulate 로 확인합니다.
 

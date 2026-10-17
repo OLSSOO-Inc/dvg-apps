@@ -8,6 +8,7 @@
 - [`tools/local_dvg.py`](tools/local_dvg.py): 발화 파일 항목에 **DVG 가 줄 답**(`address` · 선택지 판정 · `birth` …)을 적을 수 있습니다([예](tools/calls/flower-narrowed.json)). 주소 답을 적었는데 앱이 `expect:"address"` 없이 물으면 위반으로 짚습니다. 모르는 키는 시작 전에 멈춥니다.
 - `--live`: «시험 통화» 표시 없이 보내 앱의 **등록 경로**까지 돕니다(🔴 개발용 업무 API 에만). `--caller ""` 로 «발신번호 제공 안 함» 도 시험합니다.
 - [앱 명세서 양식](docs/app-spec-template.md): 넘기기 직전 말 · 기다리게 할 때 말 · 받지 않는 통화 · 주소 세부 처리(풀이 불가 · 장소 이름 칸 · 동·호수만 들었을 때) · 복창에 무응답 · API 환경변수 이름 · 개발용 API · 상담원을 찾는 낱말 · 문자 80바이트 초과 칸을 더했습니다.
+- 2차 AI 시험 반영: `--chat`(웹 채팅) · `--off-duty`(근무 시간 밖) · `--setup '{…}'` · 앱이 보낸 `unrecognized` 표시 · 주소를 못 알아들은 경우의 예 [`tools/calls/address-unknown.json`](tools/calls/address-unknown.json) (적지 않으면 «풀이 불가» 로 답해 원문을 받는 앱이 군말을 주소로 받는다) · 명세서에 고객 조회 실패·늦음 · `partial` · 주소 칸 최대 질문 수 · 등록 «응답 없음» 예 추가.
 - CI 가 꽃 배달 좁히기 파일과 `--live` 도 돌리고, 등록 함수가 각각 정확히 한 번 불렸는지 셉니다.
 
 ## 내 앱 만들기 · AI 로 만들기 (문서 · 도구)

@@ -26,6 +26,11 @@ DVG 처럼 서명 헤더를 붙여 앱에 WebSocket 으로 연결하고, 발신�
      {"text": "참불", "choice": "착불", "choiceSource": "initial", "confirm": true}]
 ⚠️ 적은 값은 흉내가 아니라 **여러분이 정한 답**입니다 — 진짜 DVG 가 그렇게 답하는지는 `simulate` 로 확인하십시오.
 
+주소를 **못 알아들은 경우**를 시험하려면 DVG 가 「주소로 읽지 못함」 이라고 답하게 적습니다([예](calls/address-unknown.json)) —
+적지 않으면 «풀이를 쓸 수 없는 설치» 로 답하므로, 그때 원문을 받는 앱은 「어 그게」 도 배달지로 받습니다.
+
+`--chat`(웹 채팅) · `--off-duty`(근무 시간 밖) · `--setup '{…}'`(setup 에 덧붙일 필드)로 setup 을 바꿀 수 있습니다.
+
 `--live` 를 주면 «시험 통화»(`setup.simulated`) 표시 없이 보냅니다 — 앱이 **실제로 주문을 등록**하는 경로까지 돕니다.
 🔴 앱의 업무 API 주소를 **개발용(가짜) 서버**로 바꿔 놓고만 쓰십시오. 운영 API 에 붙어 있으면 진짜 주문이 생깁니다.
 
@@ -74,6 +79,12 @@ def tone_warning(text, choices=None):
                 return "선택지를 쉼표로 이었다 — 낱말마다 마침표로 끊으십시오"
     return ""
 
+
+# 계약 §3-15 의 예 그대로 — 근무 시간 밖
+OFF_DUTY_STAFF = {
+    "onDuty": False, "nextOpen": "2026-10-08T09:00:00+09:00", "nextOpenText": "내일 오전 9시", "callback": True,
+    "handoffNotice": "지금은 상담 시간이 아니어서 담당자가 바로 받지 못할 수 있어요. 받지 못하면 남겨 주신 내용을 담당자에게 전해 드리고, 내일 오전 9시 이후에 연락드릴게요.",
+}
 
 # 발화 파일 객체에 적을 수 있는 키 — 계약 §3-2 의 prompt 필드
 CHOICE_KEYS = {"choice", "choiceIndex", "choiceSource", "confirm", "choiceAmbiguous"}
@@ -241,7 +252,8 @@ class Session:
         return {"type": "error", "code": "unknown_type", "message": f"모르는 type: {kind!r}"}, None
 
 
-async def run(url, app_id, secret, utterances, direction, settings, expect=None, live=False, caller="01000000000"):
+async def run(url, app_id, secret, utterances, direction, settings, expect=None, live=False, caller="01000000000",
+              setup_extra=None):
     call_id = f"{int(time.time())}.local"
     ts = str(int(time.time()))
     headers = {
@@ -266,6 +278,8 @@ async def run(url, app_id, secret, utterances, direction, settings, expect=None,
         setup["caller"] = caller
     if settings:
         setup["settings"] = settings
+    if setup_extra:
+        setup.update(setup_extra)
     reason = None
     async with ws:
         await ws.send(s.next_turn(setup))
@@ -293,6 +307,8 @@ async def run(url, app_id, secret, utterances, direction, settings, expect=None,
                 s.violate(f"지시 {MAX_DIRECTIVES}회를 넘었다 — 실통화에서는 사람에게 넘어갑니다(limit)")
                 reason = "limit"
                 break
+            if m.get("unrecognized"):
+                s.out("  📚 못 알아들은 대답으로 알림(unrecognized)", " / ".join(str(x) for x in m["unrecognized"]))
             reply, reason = s.answer(m)
             if reply is not None:
                 if reply.get("type") == "error":
@@ -327,6 +343,11 @@ def main():
     ap.add_argument("--live", action="store_true",
                     help="시험 통화 표시(simulated) 없이 보낸다 — 실제 등록 경로까지 돈다. 🔴 개발용 업무 API 에만")
     ap.add_argument("--caller", default="01000000000", help="setup.caller(발신번호) · 빈 값이면 싣지 않는다(«발신번호 제공 안 함»)")
+    ap.add_argument("--chat", action="store_true",
+                    help="웹 채팅으로 흉내(setup.channel=chat · 발신번호·걸려 온 번호 없음) — 앱은 주문을 만들지 않고 transfer 해야 한다")
+    ap.add_argument("--off-duty", action="store_true",
+                    help="상담원 근무 시간 밖으로 흉내(setup.staff · 계약 §3-15 의 예 그대로)")
+    ap.add_argument("--setup", help='setup 에 덧붙일 JSON(계약 §3-2 필드 · 예: \'{"staff":{"onDuty":true}}\')')
     ap.add_argument("--settings", help='설치별 설정 JSON(예: \'{"shopName":"꽃마을"}\')')
     a = ap.parse_args()
     secret = os.environ.get("DVG_SIGNING_SECRET") or os.environ.get("DVG_APP_SIGNING_SECRET")
@@ -338,10 +359,22 @@ def main():
             utter = json.load(f)
     utter = load_utterances(utter)
     settings = json.loads(a.settings) if a.settings else None
+    extra = {}
+    caller = a.caller
+    if a.chat:
+        extra.update({"channel": "chat", "did": ""})
+        caller = ""  # 채팅에는 발신번호가 없다(계약 §3-17)
+    if a.off_duty:
+        extra["staff"] = OFF_DUTY_STAFF
+    if a.setup:
+        more = json.loads(a.setup)
+        if not isinstance(more, dict):
+            raise SystemExit("--setup 은 JSON 객체여야 합니다")
+        extra.update(more)
     if a.live:
         print("⚠️ --live: 시험 통화 표시 없이 보냅니다 — 앱이 실제로 주문을 등록합니다. 앱이 개발용 업무 API 에 붙어 있는지 확인하십시오.\n", flush=True)
     sys.exit(asyncio.run(run(a.url, a.app_id, secret, utter, "outbound" if a.outbound else "inbound",
-                             settings, a.expect, a.live, a.caller)))
+                             settings, a.expect, a.live, caller, extra)))
 
 
 if __name__ == "__main__":
