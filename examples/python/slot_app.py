@@ -153,6 +153,10 @@ def make_handler(scenario):
                 spoken.append(f"{slot['readback']} {value}.")
             confirm = await send(ws, {"type": "ask", "text": " ".join(spoken) + " 맞으면 「네」. 틀리면 「아니요」.",
                                       "choices": ["네", "아니요"]})
+            if confirm.get("choice") == "네" and setup.get("channel") == "chat":
+                # 🔴 웹 채팅은 상담·안내용 — 실제 주문을 만들지 않고 모은 내용을 메모로 상담원에게 넘긴다(계약 §3-17).
+                await send(ws, {"type": "transfer", "note": "채팅 문의 — " + " ".join(spoken)})
+                return
             if confirm.get("choice") != "네" or not register_order(scenario, order, setup):
                 await send(ws, {"type": "transfer"})
                 return

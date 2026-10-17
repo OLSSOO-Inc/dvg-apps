@@ -100,10 +100,25 @@ struct In {
     org_id: String,
     caller: Option<String>,
     simulated: bool,
+    /// "chat" = 웹 채팅(계약 §3-17)
+    channel: String,
+    /// prompt: expect:"address" 의 결과 — 키가 없으면 None(오래된 DVG)
+    address: Option<Address>,
+}
+
+/// prompt.address 중 이 예제가 쓰는 필드(계약 §3-5).
+#[derive(Deserialize, Default, Debug)]
+#[serde(default, rename_all = "camelCase")]
+struct Address {
+    status: String,
+    line: String,
+    detail: String,
+    detail_clean: String,
+    question: String,
 }
 
 /// 앱 → DVG 지시.
-#[derive(Serialize)]
+#[derive(Serialize, Default)]
 struct Out {
     #[serde(rename = "type")]
     typ: String,
@@ -111,6 +126,14 @@ struct Out {
     text: String,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     choices: Vec<String>,
+    /// ask: "address" 면 DVG 가 주소를 풀어 준다(계약 §3-5)
+    #[serde(skip_serializing_if = "String::is_empty")]
+    expect: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    label: String,
+    /// transfer: 상담원에게 남길 메모
+    #[serde(skip_serializing_if = "String::is_empty")]
+    note: String,
 }
 
 #[derive(Debug)]
@@ -164,11 +187,16 @@ impl Session {
     }
 
     async fn send(&mut self, typ: &str, text: &str, choices: &[&str]) -> Result<(), AppError> {
-        let out = Out {
+        self.send_out(Out {
             typ: typ.to_string(),
             text: text.to_string(),
             choices: choices.iter().map(|c| c.to_string()).collect(),
-        };
+            ..Out::default()
+        })
+        .await
+    }
+
+    async fn send_out(&mut self, out: Out) -> Result<(), AppError> {
         let body = serde_json::to_string(&out).map_err(|e| AppError::Other(e.to_string()))?;
         self.ws.send(Message::text(body)).await?;
         Ok(())
@@ -187,8 +215,69 @@ impl Session {
         Ok(m.text.trim().to_string())
     }
 
+    /// 주소를 묻는다 — DVG 가 시·도/구·군/동으로 풀어 준다(계약 §3-5). 복창용 한 줄, 못 얻으면 빈 문자열.
+    /// resolved → DVG 의 한 줄(line) + 동 뒤의 말(detailClean) · ambiguous → DVG 의 좁히는 질문을 **글자 그대로** 다시 묻는다 ·
+    /// unavailable(또는 address 가 없는 오래된 DVG) → 발화 원문(마지막 복창이 확인한다) · 그 밖 → 바꾼 질문으로 한 번 더.
+    async fn ask_address(
+        &mut self,
+        question: &str,
+        again: &str,
+        label: &str,
+    ) -> Result<String, AppError> {
+        let mut text = question.to_string();
+        // 첫 질문 + 바꾼 질문 + (여러 곳일 때) DVG 의 좁히는 질문
+        for _ in 0..3 {
+            self.send_out(Out {
+                typ: "ask".into(),
+                text: text.clone(),
+                expect: "address".into(),
+                label: label.into(),
+                ..Out::default()
+            })
+            .await?;
+            let m = self.recv().await?;
+            let heard = if m.silence {
+                String::new()
+            } else {
+                m.text.trim().to_string()
+            };
+            match &m.address {
+                Some(a) if a.status == "resolved" => {
+                    let detail = if a.detail_clean.is_empty() {
+                        &a.detail
+                    } else {
+                        &a.detail_clean
+                    };
+                    return Ok(format!("{} {}", a.line, detail).trim().to_string());
+                }
+                Some(a) if a.status == "ambiguous" && !a.question.is_empty() => {
+                    text = a.question.clone();
+                    continue;
+                }
+                Some(a) if a.status == "unavailable" && !heard.is_empty() => return Ok(heard),
+                None if !heard.is_empty() => return Ok(heard),
+                _ => {}
+            }
+            if text == again {
+                break; // 바꾼 질문으로도 못 얻었다 — 더 묻지 않는다
+            }
+            text = again.to_string();
+        }
+        Ok(String::new())
+    }
+
     async fn end(&mut self, typ: &str, text: &str) -> Result<(), AppError> {
-        self.send(typ, text, &[]).await?;
+        self.end_note(typ, text, "").await
+    }
+
+    async fn end_note(&mut self, typ: &str, text: &str, note: &str) -> Result<(), AppError> {
+        self.send_out(Out {
+            typ: typ.to_string(),
+            text: text.to_string(),
+            note: note.to_string(),
+            ..Out::default()
+        })
+        .await?;
         self.recv().await.map(|_| ())
     }
 }
@@ -213,32 +302,41 @@ async fn handle(ws: WebSocketStream<TcpStream>) -> Result<(), AppError> {
         setup.caller.is_some()
     );
     let mut order: BTreeMap<&str, String> = BTreeMap::new();
-    // (칸, 첫 질문, 다시 물을 때의 질문, 선택지) — 🔴 같은 문장을 되풀이하지 않는다. 다시 물을 때는 질문을 바꾼다.
-    let steps: [(&str, &str, &str, &[&str]); 3] = [
+    // (칸, 첫 질문, 다시 물을 때의 질문, 선택지, 주소 칸 이름) — 🔴 같은 문장을 되풀이하지 않는다. 다시 물을 때는 질문을 바꾼다.
+    let steps: [(&str, &str, &str, &[&str], &str); 3] = [
         (
             "origin",
             "어디에서 보내시나요?",
-            "제가 잘 못 들었습니다. 물건을 가지러 갈 곳을 말씀해 주세요.",
+            "제가 잘 못 들었습니다. 물건을 가지러 갈 곳의 구와 동을 말씀해 주세요.",
             &[],
+            "출발지",
         ),
         (
             "destination",
             "어디로 보내시나요?",
-            "제가 잘 못 들었습니다. 물건을 받으실 곳을 말씀해 주세요.",
+            "제가 잘 못 들었습니다. 물건을 받으실 곳의 구와 동을 말씀해 주세요.",
             &[],
+            "도착지",
         ),
         (
             "pay",
             "선불. 착불. 결제는 어느 쪽인가요?",
             "제가 잘 못 들었습니다. 선불이면 「선불」. 착불이면 「착불」.",
             &["선불", "착불"],
+            "",
         ),
     ];
-    for (key, question, again, choices) in steps {
-        let mut ans = s.ask(question, choices).await?;
-        if ans.is_empty() {
-            ans = s.ask(again, choices).await?;
-        }
+    for (key, question, again, choices, label) in steps {
+        let ans = if label.is_empty() {
+            let mut ans = s.ask(question, choices).await?;
+            if ans.is_empty() {
+                ans = s.ask(again, choices).await?;
+            }
+            ans
+        } else {
+            // 주소는 DVG 가 풀어 준다(앱이 파싱하지 않는다)
+            s.ask_address(question, again, label).await?
+        };
         if ans.is_empty() {
             return s.end("transfer", "").await; // 번호는 DVG 가 정한다(앱이 지정할 수 없다)
         }
@@ -252,6 +350,14 @@ async fn handle(ws: WebSocketStream<TcpStream>) -> Result<(), AppError> {
     let ok = s.ask(&readback, &[]).await?;
     if !(ok.starts_with('네') || ok.starts_with('예') || ok.starts_with('맞')) {
         return s.end("transfer", "").await;
+    }
+    let summary = format!(
+        "출발 {}. 도착 {}. 결제 {}.",
+        order["origin"], order["destination"], order["pay"]
+    );
+    if setup.channel == "chat" {
+        // 🔴 웹 채팅은 상담·안내용 — 실제 주문을 만들지 않고 모은 내용을 메모로 상담원에게 넘긴다(계약 §3-17).
+        return s.end_note("transfer", "", &format!("채팅 문의 — {summary}")).await;
     }
     if register_order(&order, &setup) {
         return s.end("hangup", "접수되었습니다. 감사합니다.").await;

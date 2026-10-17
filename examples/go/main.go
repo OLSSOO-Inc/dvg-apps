@@ -74,6 +74,20 @@ type msg struct {
 	OrgID     string   `json:"orgId,omitempty"`
 	Caller    *string  `json:"caller,omitempty"`
 	Simulated bool     `json:"simulated,omitempty"`
+	Channel   string   `json:"channel,omitempty"` // "chat" = 웹 채팅(계약 §3-17)
+	Expect    string   `json:"expect,omitempty"`  // ask: "address" 면 DVG 가 주소를 풀어 준다(계약 §3-5)
+	Label     string   `json:"label,omitempty"`
+	Note      string   `json:"note,omitempty"`    // transfer: 상담원에게 남길 메모
+	Address   *address `json:"address,omitempty"` // prompt: expect:"address" 의 결과 — 키가 없으면 nil
+}
+
+// address: prompt.address 중 이 예제가 쓰는 필드(계약 §3-5).
+type address struct {
+	Status      string `json:"status"`
+	Line        string `json:"line,omitempty"`
+	Detail      string `json:"detail,omitempty"`
+	DetailClean string `json:"detailClean,omitempty"`
+	Question    string `json:"question,omitempty"`
 }
 
 // session: 한 통화 — DVG 는 엄격한 요청·응답이라 읽기·쓰기가 한 고루틴에서 번갈아 일어난다.
@@ -115,8 +129,51 @@ func (s session) ask(text string, choices []string) (string, error) {
 	return strings.TrimSpace(m.Text), nil
 }
 
-func (s session) end(typ, text string) error {
-	if err := s.send(msg{Type: typ, Text: text}); err != nil {
+// askAddress: 주소를 묻는다 — DVG 가 시·도/구·군/동으로 풀어 준다(계약 §3-5). 복창용 한 줄, 못 얻으면 빈 문자열.
+//   - resolved → DVG 의 한 줄(line) + 동 뒤의 말(detailClean)
+//   - ambiguous → DVG 의 좁히는 질문을 **글자 그대로** 다시 묻는다(그래야 다음 답을 좁혀 준다)
+//   - unavailable(또는 address 가 없는 오래된 DVG) → 발화 원문(마지막 복창이 확인한다)
+//   - 그 밖 → 바꾼 질문으로 한 번 더, 그래도 없으면 빈 값(→ 사람에게)
+func (s session) askAddress(question, again, label string) (string, error) {
+	text := question
+	for i := 0; i < 3; i++ { // 첫 질문 + 바꾼 질문 + (여러 곳일 때) DVG 의 좁히는 질문
+		if err := s.send(msg{Type: "ask", Text: text, Expect: "address", Label: label}); err != nil {
+			return "", err
+		}
+		m, err := s.recv()
+		if err != nil {
+			return "", err
+		}
+		heard := ""
+		if !m.Silence {
+			heard = strings.TrimSpace(m.Text)
+		}
+		a := m.Address
+		switch {
+		case a != nil && a.Status == "resolved":
+			detail := a.DetailClean
+			if detail == "" {
+				detail = a.Detail
+			}
+			return strings.TrimSpace(a.Line + " " + detail), nil
+		case heard != "" && (a == nil || a.Status == "unavailable"):
+			return heard, nil
+		case a != nil && a.Status == "ambiguous" && a.Question != "":
+			text = a.Question
+			continue
+		}
+		if text == again {
+			break // 바꾼 질문으로도 못 얻었다 — 더 묻지 않는다
+		}
+		text = again
+	}
+	return "", nil
+}
+
+func (s session) end(typ, text string) error { return s.endNote(typ, text, "") }
+
+func (s session) endNote(typ, text, note string) error {
+	if err := s.send(msg{Type: typ, Text: text, Note: note}); err != nil {
 		return err
 	}
 	_, err := s.recv()
@@ -142,23 +199,32 @@ func handle(c *websocket.Conn) error {
 	}
 	log.Printf("통화 시작 %s (발신번호 제공=%v)", setup.CallID, setup.Caller != nil)
 	order := map[string]string{}
-	// (칸, 첫 질문, 다시 물을 때의 질문) — 🔴 같은 문장을 되풀이하지 않는다. 다시 물을 때는 질문을 바꾼다.
+	// (칸, 첫 질문, 다시 물을 때의 질문, 선택지, 주소 칸 이름) — 🔴 같은 문장을 되풀이하지 않는다. 다시 물을 때는 질문을 바꾼다.
 	steps := []struct {
 		key, question, again string
 		choices              []string
+		label                string
 	}{
-		{"origin", "어디에서 보내시나요?", "제가 잘 못 들었습니다. 물건을 가지러 갈 곳을 말씀해 주세요.", nil},
-		{"destination", "어디로 보내시나요?", "제가 잘 못 들었습니다. 물건을 받으실 곳을 말씀해 주세요.", nil},
-		{"pay", "선불. 착불. 결제는 어느 쪽인가요?", "제가 잘 못 들었습니다. 선불이면 「선불」. 착불이면 「착불」.", []string{"선불", "착불"}},
+		{"origin", "어디에서 보내시나요?", "제가 잘 못 들었습니다. 물건을 가지러 갈 곳의 구와 동을 말씀해 주세요.", nil, "출발지"},
+		{"destination", "어디로 보내시나요?", "제가 잘 못 들었습니다. 물건을 받으실 곳의 구와 동을 말씀해 주세요.", nil, "도착지"},
+		{"pay", "선불. 착불. 결제는 어느 쪽인가요?", "제가 잘 못 들었습니다. 선불이면 「선불」. 착불이면 「착불」.", []string{"선불", "착불"}, ""},
 	}
 	for _, st := range steps {
-		ans, err := s.ask(st.question, st.choices)
-		if err != nil {
-			return err
-		}
-		if ans == "" {
-			if ans, err = s.ask(st.again, st.choices); err != nil {
+		var ans string
+		var err error
+		if st.label != "" {
+			ans, err = s.askAddress(st.question, st.again, st.label) // 주소는 DVG 가 풀어 준다(앱이 파싱하지 않는다)
+			if err != nil {
 				return err
+			}
+		} else {
+			if ans, err = s.ask(st.question, st.choices); err != nil {
+				return err
+			}
+			if ans == "" {
+				if ans, err = s.ask(st.again, st.choices); err != nil {
+					return err
+				}
 			}
 		}
 		if ans == "" {
@@ -173,6 +239,11 @@ func handle(c *websocket.Conn) error {
 	}
 	if !(strings.HasPrefix(ok, "네") || strings.HasPrefix(ok, "예") || strings.HasPrefix(ok, "맞")) {
 		return s.end("transfer", "")
+	}
+	summary := "출발 " + order["origin"] + ". 도착 " + order["destination"] + ". 결제 " + order["pay"] + "."
+	if setup.Channel == "chat" {
+		// 🔴 웹 채팅은 상담·안내용 — 실제 주문을 만들지 않고 모은 내용을 메모로 상담원에게 넘긴다(계약 §3-17).
+		return s.endNote("transfer", "", "채팅 문의 — "+summary)
 	}
 	if registerOrder(order, setup) {
 		return s.end("hangup", "접수되었습니다. 감사합니다.")
