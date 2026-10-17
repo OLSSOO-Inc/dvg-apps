@@ -212,11 +212,56 @@ public final class OrderApp extends WebSocketServer {
             return choices != null ? str(r, "choice") : str(r, "text").trim();
         }
 
+        /**
+         * 주소를 묻는다 — DVG 가 시·도/구·군/동으로 풀어 준다(계약 §3-5). 복창용 한 줄, 못 얻으면 "".
+         * resolved → DVG 의 한 줄(line) + 동 뒤의 말(detailClean) · ambiguous → DVG 의 좁히는 질문을 <b>글자 그대로</b> 다시 묻는다 ·
+         * unavailable(또는 address 가 없는 오래된 DVG) → 발화 원문(마지막 복창이 확인한다) · 그 밖 → 바꾼 질문으로 한 번 더.
+         */
+        String askAddress(String question, String again, String label) throws CallEnded, InterruptedException {
+            String text = question;
+            for (int i = 0; i < 3; i++) { // 첫 질문 + 바꾼 질문 + (여러 곳일 때) DVG 의 좁히는 질문
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("type", "ask");
+                m.put("text", text);
+                m.put("expect", "address");
+                m.put("label", label);
+                send(m);
+                JsonObject r = recv();
+                boolean silence = r.has("silence") && r.get("silence").getAsBoolean();
+                String heard = silence ? "" : str(r, "text").trim();
+                JsonObject a = r.has("address") && r.get("address").isJsonObject() ? r.getAsJsonObject("address") : null;
+                String status = a == null ? "" : str(a, "status");
+                if ("resolved".equals(status)) {
+                    String detail = str(a, "detailClean").isEmpty() ? str(a, "detail") : str(a, "detailClean");
+                    return (str(a, "line") + " " + detail).trim();
+                }
+                if (!heard.isEmpty() && (a == null || "unavailable".equals(status))) {
+                    return heard;
+                }
+                if ("ambiguous".equals(status) && !str(a, "question").isEmpty()) {
+                    text = str(a, "question");
+                    continue;
+                }
+                if (text.equals(again)) {
+                    break; // 바꾼 질문으로도 못 얻었다 — 더 묻지 않는다
+                }
+                text = again;
+            }
+            return "";
+        }
+
         void end(String type, String text) throws CallEnded, InterruptedException {
+            end(type, text, null);
+        }
+
+        void end(String type, String text, String note) throws CallEnded, InterruptedException {
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("type", type);
             if (text != null && !text.isEmpty()) {
                 m.put("text", text);
+            }
+            if (note != null && !note.isEmpty()) {
+                m.put("note", note);
             }
             send(m);
             recv(); // end 가 온다(CallEnded)
@@ -227,7 +272,7 @@ public final class OrderApp extends WebSocketServer {
         return o.has(k) && o.get(k).isJsonPrimitive() ? o.get(k).getAsString() : "";
     }
 
-    record Step(String key, String question, String again, List<String> choices) {}
+    record Step(String key, String question, String again, List<String> choices, String label) {}
 
     static boolean registerOrder(Map<String, String> order, JsonObject setup) {
         if (setup.has("simulated") && setup.get("simulated").getAsBoolean()) {
@@ -243,15 +288,20 @@ public final class OrderApp extends WebSocketServer {
         JsonObject setup = s.recv(); // 첫 메시지는 항상 setup
         System.out.println("통화 시작 " + str(setup, "callId") + " (발신번호 제공=" + setup.has("caller") + ")");
         Map<String, String> order = new LinkedHashMap<>();
-        // (칸, 첫 질문, 다시 물을 때의 질문) — 🔴 같은 문장을 되풀이하지 않는다. 다시 물을 때는 질문을 바꾼다.
+        // (칸, 첫 질문, 다시 물을 때의 질문, 선택지, 주소 칸 이름) — 🔴 같은 문장을 되풀이하지 않는다. 다시 물을 때는 질문을 바꾼다.
         List<Step> steps = new ArrayList<>();
-        steps.add(new Step("origin", "어디에서 보내시나요?", "제가 잘 못 들었습니다. 물건을 가지러 갈 곳을 말씀해 주세요.", null));
-        steps.add(new Step("destination", "어디로 보내시나요?", "제가 잘 못 들었습니다. 물건을 받으실 곳을 말씀해 주세요.", null));
-        steps.add(new Step("pay", "선불. 착불. 결제는 어느 쪽인가요?", "제가 잘 못 들었습니다. 선불이면 「선불」. 착불이면 「착불」.", List.of("선불", "착불")));
+        steps.add(new Step("origin", "어디에서 보내시나요?", "제가 잘 못 들었습니다. 물건을 가지러 갈 곳의 구와 동을 말씀해 주세요.", null, "출발지"));
+        steps.add(new Step("destination", "어디로 보내시나요?", "제가 잘 못 들었습니다. 물건을 받으실 곳의 구와 동을 말씀해 주세요.", null, "도착지"));
+        steps.add(new Step("pay", "선불. 착불. 결제는 어느 쪽인가요?", "제가 잘 못 들었습니다. 선불이면 「선불」. 착불이면 「착불」.", List.of("선불", "착불"), null));
         for (Step st : steps) {
-            String ans = s.ask(st.question(), st.choices());
-            if (ans.isEmpty()) {
-                ans = s.ask(st.again(), st.choices());
+            String ans;
+            if (st.label() != null) {
+                ans = s.askAddress(st.question(), st.again(), st.label()); // 주소는 DVG 가 풀어 준다(앱이 파싱하지 않는다)
+            } else {
+                ans = s.ask(st.question(), st.choices());
+                if (ans.isEmpty()) {
+                    ans = s.ask(st.again(), st.choices());
+                }
             }
             if (ans.isEmpty()) {
                 s.end("transfer", null); // 번호는 DVG 가 정한다(앱이 지정할 수 없다)
@@ -264,6 +314,12 @@ public final class OrderApp extends WebSocketServer {
                 + ". 맞으면 「네」라고 말씀해 주세요.", null);
         if (!(ok.startsWith("네") || ok.startsWith("예") || ok.startsWith("맞"))) {
             s.end("transfer", null);
+            return;
+        }
+        String summary = "출발 " + order.get("origin") + ". 도착 " + order.get("destination") + ". 결제 " + order.get("pay") + ".";
+        if ("chat".equals(str(setup, "channel"))) {
+            // 🔴 웹 채팅은 상담·안내용 — 실제 주문을 만들지 않고 모은 내용을 메모로 상담원에게 넘긴다(계약 §3-17).
+            s.end("transfer", null, "채팅 문의 — " + summary);
             return;
         }
         if (registerOrder(order, setup)) {

@@ -15,14 +15,13 @@ jobs:
         working-directory: examples/python
       - run: python conformance/check_python.py
       # 🧪 로컬 DVG 흉내로 예제를 끝까지 돌린다 — 도구와 예제가 서로 어긋나면 여기서 드러난다.
-      - name: local_dvg — 주문 예제
+      # 다섯 언어 주문 예제가 **같은 다섯 대화**를 같은 결말로 끝내야 한다(tools/check_order_example.sh) —
+      # 무응답 · 주소 좁히기(DVG 질문을 그대로) · 주소 못 알아들음 · 복창 아니요 · 웹 채팅(주문 대신 사람에게).
+      # 한 프로세스가 다섯 통화를 연달아 받으므로, 통화 하나에 앱이 죽는 결함도 여기서 드러난다.
+      - name: 주문 예제 대화 — Python
         run: |
           python -m py_compile tools/local_dvg.py
-          DVG_SIGNING_SECRET=ci-secret python examples/python/order_app.py & APP=$!
-          sleep 2
-          DVG_SIGNING_SECRET=ci-secret python tools/local_dvg.py --expect completed "강남역" "" "서초동" "착불" "네"
-          DVG_SIGNING_SECRET=ci-secret python tools/local_dvg.py --expect transferred "강남역" "서초동" "착불" "아니요"
-          kill "$APP"; wait "$APP" || true
+          DVG_SIGNING_SECRET=ci-secret PYTHON=python tools/check_order_example.sh python examples/python/order_app.py
       - name: local_dvg — 시나리오 엔진(대리운전)
         run: |
           DVG_SIGNING_SECRET=ci-secret DVG_APP_SCENARIO=examples/python/scenarios/driver.json python examples/python/slot_app.py & APP=$!
@@ -43,17 +42,25 @@ jobs:
         working-directory: examples/node
       - run: node --check examples/node/order_app.mjs
       - run: node conformance/check_node.mjs
+      - name: 주문 예제 대화 — Node.js
+        run: DVG_SIGNING_SECRET=ci-secret PYTHON=python tools/check_order_example.sh node examples/node/order_app.mjs
       - uses: actions/setup-go@v5
         with: { go-version-file: examples/go/go.mod }
-      - run: go vet ./... && go test ./... && go build ./...
+      - run: go vet ./... && go test ./... && go build ./... && go build -o /tmp/go-order-app .
         working-directory: examples/go
+      - name: 주문 예제 대화 — Go
+        run: DVG_SIGNING_SECRET=ci-secret PYTHON=python tools/check_order_example.sh /tmp/go-order-app
       - uses: actions/setup-java@v4
         with: { distribution: temurin, java-version: '17', cache: maven }
       - run: mvn -B -q package
         working-directory: examples/java
+      - name: 주문 예제 대화 — Java
+        run: DVG_SIGNING_SECRET=ci-secret PYTHON=python tools/check_order_example.sh java -jar examples/java/target/order-app.jar
       # Rust — GitHub 러너에 stable 이 깔려 있다. 서식·린트·시험 벡터·릴리스 빌드.
       - run: cargo --version && cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test && cargo build --release
         working-directory: examples/rust
+      - name: 주문 예제 대화 — Rust
+        run: DVG_SIGNING_SECRET=ci-secret PYTHON=python tools/check_order_example.sh examples/rust/target/release/order-app
 
   # 🖥 앱 개발사 콘솔 샘플 — 외부 의존성 없음 · 가짜 DVG 로 실제 HTTP 시험.
   console:

@@ -64,7 +64,31 @@ function session(ws) {
       if (m.type !== 'prompt' || m.silence) return '';
       return choices ? (m.choice || '') : (m.text || '').trim();
     },
-    async end(type, text) { send(text ? { type, text } : { type }); await recv(); },
+    // 주소를 묻는다 — DVG 가 시·도/구·군/동으로 풀어 준다(계약 §3-5). 복창용 한 줄, 못 얻으면 빈 문자열.
+    //  resolved → DVG 의 한 줄(line) + 동 뒤의 말(detailClean) · ambiguous → DVG 의 좁히는 질문을 **글자 그대로** 다시 묻는다
+    //  unavailable(또는 address 가 없는 오래된 DVG) → 발화 원문(마지막 복창이 확인한다) · 그 밖 → 바꾼 질문으로 한 번 더
+    async askAddress(question, again, label) {
+      let text = question;
+      for (let i = 0; i < 3; i++) { // 첫 질문 + 바꾼 질문 + (여러 곳일 때) DVG 의 좁히는 질문
+        send({ type: 'ask', text, expect: 'address', label });
+        const m = await recv();
+        const heard = m.silence ? '' : (m.text || '').trim();
+        const a = m.address || {};
+        if (a.status === 'resolved') return `${a.line || ''} ${a.detailClean || a.detail || ''}`.trim();
+        if (heard && (a.status === 'unavailable' || !('address' in m))) return heard;
+        if (a.status === 'ambiguous' && a.question) { text = a.question; continue; }
+        if (text === again) break; // 바꾼 질문으로도 못 얻었다 — 더 묻지 않는다
+        text = again;
+      }
+      return '';
+    },
+    async end(type, text, note) {
+      const m = { type };
+      if (text) m.text = text;
+      if (note) m.note = note;
+      send(m);
+      await recv();
+    },
   };
 }
 
@@ -78,26 +102,36 @@ function registerOrder(order, setup) {
   return true;
 }
 
+// ⚠️ s.end(…) 는 DVG 의 end 를 받으면 CallEnded 를 던진다 — `return await` 로 기다려야 아래 catch 가 잡는다.
+// `return s.end(…)` 처럼 기다리지 않으면 그 예외가 처리되지 않아 **앱 프로세스 전체가 죽고 다음 통화를 못 받는다**.
 async function handle(ws) {
   const s = session(ws);
   try {
     const setup = await s.recv(); // 첫 메시지는 항상 setup
     console.log('통화 시작', setup.callId, setup.caller ? '발신번호 제공' : '발신번호 없음');
     const order = {};
-    // (칸, 첫 질문, 다시 물을 때의 질문) — 🔴 같은 문장을 되풀이하지 않는다. 다시 물을 때는 질문을 바꾼다.
-    for (const [key, question, again, choices] of [
-      ['origin', '어디에서 보내시나요?', '제가 잘 못 들었습니다. 물건을 가지러 갈 곳을 말씀해 주세요.'],
-      ['destination', '어디로 보내시나요?', '제가 잘 못 들었습니다. 물건을 받으실 곳을 말씀해 주세요.'],
-      ['pay', '선불. 착불. 결제는 어느 쪽인가요?', '제가 잘 못 들었습니다. 선불이면 「선불」. 착불이면 「착불」.', ['선불', '착불']],
+    // (칸, 첫 질문, 다시 물을 때의 질문, 선택지, 주소 칸 이름) — 🔴 같은 문장을 되풀이하지 않는다. 다시 물을 때는 질문을 바꾼다.
+    for (const [key, question, again, choices, label] of [
+      ['origin', '어디에서 보내시나요?', '제가 잘 못 들었습니다. 물건을 가지러 갈 곳의 구와 동을 말씀해 주세요.', null, '출발지'],
+      ['destination', '어디로 보내시나요?', '제가 잘 못 들었습니다. 물건을 받으실 곳의 구와 동을 말씀해 주세요.', null, '도착지'],
+      ['pay', '선불. 착불. 결제는 어느 쪽인가요?', '제가 잘 못 들었습니다. 선불이면 「선불」. 착불이면 「착불」.', ['선불', '착불'], null],
     ]) {
-      let answer = await s.ask(question, choices);
-      if (!answer) answer = await s.ask(again, choices);
-      if (!answer) return s.end('transfer'); // 번호는 DVG 가 정한다(앱이 지정할 수 없다)
+      let answer;
+      if (label) {
+        answer = await s.askAddress(question, again, label); // 주소는 DVG 가 풀어 준다(앱이 파싱하지 않는다)
+      } else {
+        answer = await s.ask(question, choices);
+        if (!answer) answer = await s.ask(again, choices);
+      }
+      if (!answer) return await s.end('transfer'); // 번호는 DVG 가 정한다(앱이 지정할 수 없다)
       order[key] = answer;
     }
     // 복창 — 나열은 마침표로 끊는다(쉼표로 이으면 전화에서 한 덩어리로 들린다).
     const ok = await s.ask(`출발 ${order.origin}. 도착 ${order.destination}. 결제 ${order.pay}. 맞으면 「네」라고 말씀해 주세요.`);
-    if (!/^(네|예|맞)/.test(ok)) return s.end('transfer');
+    if (!/^(네|예|맞)/.test(ok)) return await s.end('transfer');
+    const summary = `출발 ${order.origin}. 도착 ${order.destination}. 결제 ${order.pay}.`;
+    // 🔴 웹 채팅은 상담·안내용 — 실제 주문을 만들지 않고 모은 내용을 메모로 상담원에게 넘긴다(계약 §3-17).
+    if (setup.channel === 'chat') return await s.end('transfer', '', `채팅 문의 — ${summary}`);
     await (registerOrder(order, setup) ? s.end('hangup', '접수되었습니다. 감사합니다.') : s.end('transfer'));
   } catch (e) {
     if (e instanceof CallEnded) console.log('통화 끝:', e.message);

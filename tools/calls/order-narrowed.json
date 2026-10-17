@@ -1,0 +1,14 @@
+[
+  {"text": "신천동이요",
+   "address": {"status": "ambiguous", "source": "dong_index",
+               "candidates": [{"sido": "경기도", "gugun": "시흥시"}, {"sido": "서울특별시", "gugun": "송파구"}],
+               "question": "신천동이 여러 곳입니다. 경기. 서울. 출발지는 어느 쪽인가요?"}},
+  {"text": "서울이요",
+   "address": {"status": "resolved", "sido": "서울특별시", "gugun": "송파구", "dong": "신천동",
+               "line": "서울 송파구 신천동", "source": "narrowed", "verified": true}},
+  {"text": "서초동 1층이요",
+   "address": {"status": "resolved", "sido": "서울특별시", "gugun": "서초구", "dong": "서초동",
+               "line": "서울 서초구 서초동", "detail": "1층이요", "detailClean": "1층", "source": "dong_index", "verified": true}},
+  "착불",
+  "네"
+]

@@ -49,7 +49,7 @@ relay 주소 · 설치별 설정 항목 · 음성인식 힌트 낱말 · AI 고�
 | [Java](examples/java/src/main/java/io/olssoo/dvg/example/OrderApp.java) | `cd examples/java && mvn -q package` → `DVG_SIGNING_SECRET=… java -jar target/order-app.jar` (Java 17+ · 의존성 포함 jar 하나) |
 | [Rust](examples/rust/src/main.rs) · [안내](examples/rust/README.md) | `cd examples/rust && DVG_SIGNING_SECRET=… cargo run` (최신 stable · 사이드카용은 `cargo build --release` 로 바이너리 하나) |
 
-다섯 예제(Python · Node.js · Go · Java · Rust)는 같은 일을 합니다 — 출발지·도착지·결제를 묻고, 복창하고, 등록하고, 끝냅니다. 못 알아들으면 **질문을 바꿔 한 번 더** 묻고, 그래도 안 되면 사람에게 넘깁니다.
+다섯 예제(Python · Node.js · Go · Java · Rust)는 같은 일을 합니다 — 출발지·도착지를 **`expect:"address"` 로 DVG 에 풀게 해** 묻고(여러 곳이면 DVG 의 좁히는 질문을 그대로), 결제를 선택지로 묻고, 복창하고, 등록하고, 끝냅니다. 못 알아들으면 **질문을 바꿔 한 번 더** 묻고, 그래도 안 되면 사람에게 넘깁니다. 웹 채팅(`setup.channel:"chat"`)이면 주문을 만들지 않고 모은 내용을 메모로 사람에게 넘깁니다. CI 가 다섯 예제를 [같은 다섯 대화](tools/check_order_example.sh)로 돌려 결말이 같은지 봅니다.
 모두 기본으로 `ws://127.0.0.1:19999/relay` 에서 기다리고, 같은 서버(사이드카)로 돌리면 DVG 가 넣어 주는 `DVG_APP_*` 환경변수를 읽습니다.
 실제 주문 등록은 각 예제의 등록 함수 자리에 여러분의 업무 API 호출을 넣으면 됩니다. Python 예제는 [Dockerfile](examples/python/Dockerfile)(Cloud Run 용)도 있습니다.
 

@@ -128,6 +128,7 @@ class Session:
         self.sms = 0
         self.violations = []
         self.tone = 0
+        self.narrowing = ""  # 직전 prompt 에 실은 DVG 의 좁히는 질문(address.question)
         self.direction = direction
 
     def out(self, who, text):
@@ -188,6 +189,9 @@ class Session:
                 if choices and expect != "birth":
                     return {"type": "error", "code": "bad_expect", "message": "choices 와 expect 는 함께 쓸 수 없다"}, None
             text = m.get("text") or ""
+            if self.narrowing and expect == "address" and text != self.narrowing:
+                self.violate("DVG 의 좁히는 질문(address.question)을 글자 그대로 묻지 않았다 — 그래야 다음 답을 좁혀 준다(계약 §3-5)")
+            self.narrowing = ""
             label = "🤖 AI(질문)" + (f" [선택지 {' / '.join(choices)}]" if choices else "") + (f" [expect {expect}]" if expect else "")
             self.out(label, text or "(말없이 듣기)")
             w = tone_warning(text, choices)
@@ -218,6 +222,9 @@ class Session:
             if expect == "address" and "address" not in scripted:
                 p["address"] = {"status": "unavailable", "reason": "local_dvg"}  # 적어 두지 않았으면 «풀이를 못 쓰는 설치»
             p.update(scripted)
+            a = p.get("address")
+            if isinstance(a, dict) and a.get("status") == "ambiguous" and a.get("question"):
+                self.narrowing = a["question"]
             return p, None
         if kind == "sms":
             t = m.get("text") or ""
