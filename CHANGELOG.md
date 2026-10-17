@@ -6,7 +6,7 @@
 
 - 계약 변경 없음. [내 앱 만들기](docs/build-your-app.md)(시나리오만 · 예제 고치기 · AI 로 생성 세 갈래와 프롬프트) · [앱 명세서 양식](docs/app-spec-template.md) · AI 코딩 도구용 규칙 [AGENTS.md](AGENTS.md) 추가.
 - [`tools/local_dvg.py`](tools/local_dvg.py) — 앱 키 없이 내 컴퓨터에서 DVG 를 흉내 내 대화 흐름·계약 위반(10초 초과 · 잘못된 선택지 · 번호를 넣은 `transfer` 등)·말투를 점검합니다. ⚠️ 주소·생년월일·전화번호 풀이와 초성 추정은 하지 않습니다 — 마지막 확인은 `simulate` 입니다.
-- CI 가 Python 예제 두 가지(주문 · 시나리오 엔진)를 이 도구로 끝까지 돌려 봅니다.
+- CI 가 Python 예제 두 가지(주문 · 시나리오 엔진)를 이 도구로 끝까지 돌리고 결말까지 확인합니다(`--expect`).
 
 ## 채팅 사진 `prompt.image` (DVG 1.4.16.428+)
 

@@ -124,7 +124,7 @@ my-app-spec.md 의 명세대로 음성 앱을 만들어라.
 
 다 만들면 아래를 실제로 돌리고 결과를 그대로 보여 줘라.
 1. conformance/vector.json 을 쓰는 서명 단위 시험
-2. 앱을 띄운 뒤 tools/local_dvg.py 로 명세서 §7 의 대화 예 전부(종료 코드 0 이어야 한다)
+2. 앱을 띄운 뒤 tools/local_dvg.py --expect <기대 결말> 로 명세서 §7 의 대화 예 전부(종료 코드 0 이어야 한다)
 3. 돌리지 못한 시험이 있으면 "못 돌렸다" 고 적어라.
 ```
 
@@ -220,7 +220,7 @@ cd examples/python && DVG_SIGNING_SECRET=test-secret python3 order_app.py
 다른 창에서 대화를 돌립니다. 빈 문자열(`""`)은 무응답입니다.
 
 ```bash
-DVG_SIGNING_SECRET=test-secret python3 tools/local_dvg.py "강남역" "" "서초동" "착불" "네"
+DVG_SIGNING_SECRET=test-secret python3 tools/local_dvg.py --expect completed "강남역" "" "서초동" "착불" "네"
 ```
 
 ```text
@@ -237,12 +237,13 @@ DVG_SIGNING_SECRET=test-secret python3 tools/local_dvg.py "강남역" "" "서초
 |---|---|
 | `❌` | 계약 위반 — 실통화에서는 사람에게 넘어가거나 오류가 난다(10초 초과 · 잘못된 선택지 · 모르는 메시지 · 번호를 넣은 `transfer` · 긴 문자 등) |
 | `⚠️` | 말투 경고 — 예시를 쉼표로 이었다 |
-| 종료 코드 | `0` 위반·경고 없음 · `1` 있음 · `2` 연결 실패(앱이 안 떴거나 서명 비밀이 다름) |
+| 종료 코드 | `0` 위반·경고 없음 · `1` 있음(또는 `--expect` 와 다른 결말) · `2` 연결 실패(앱이 안 떴거나 서명 비밀이 다름) |
+| `--expect` | 기대 결말 `completed`(접수 후 끊음) · `transferred`(사람에게) · `caller_hangup`(발신자가 끊음). ⚠️ **꼭 주십시오** — 엉뚱한 칸에서 사람에게 넘어가도 계약 위반은 아니라서, 결말을 보지 않으면 «위반 0건» 으로 통과합니다 |
 
 발화를 파일로 두면 반복하기 쉽습니다 — 명세서 §7 의 대화를 JSON 배열로 저장하십시오.
 
 ```bash
-DVG_SIGNING_SECRET=test-secret python3 tools/local_dvg.py --file calls/normal.json
+DVG_SIGNING_SECRET=test-secret python3 tools/local_dvg.py --expect completed --file calls/normal.json
 ```
 
 ⚠️ **흉내는 진짜가 아닙니다.** 주소 풀이·좁히기·생년월일·전화번호 판정·선택지 초성 추정은 하지 않습니다(주소는 «풀이를 쓸 수 없는 설치» 로 응답합니다).
@@ -283,7 +284,7 @@ curl -sS -X POST -H "Authorization: Bearer $DVG_APP_KEY" -H 'Content-Type: appli
 
 - [ ] 명세서의 빈칸이 없다(«모름» 칸은 운영사에 확인했다)
 - [ ] 서명 시험 벡터 통과 · 틀린 비밀은 401
-- [ ] `tools/local_dvg.py` 로 명세서 §7 의 대화 전부 종료 코드 0
+- [ ] `tools/local_dvg.py --expect …` 로 명세서 §7 의 대화 전부 종료 코드 0(결말까지 일치)
 - [ ] `simulate` 로 같은 대화 · `toneWarning` 0건 · 업무 시스템에 시험 주문이 생기지 않았다
 - [ ] 주문 등록은 한 번만 · 실패·모름은 사람에게 · `simulated`·`chat` 이면 등록하지 않는다
 - [ ] 키는 환경변수(비밀 저장소)에만 · 로그에 키·전화번호·발화 원문이 없다

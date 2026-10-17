@@ -18,16 +18,17 @@ jobs:
       - name: local_dvg — 주문 예제
         run: |
           python -m py_compile tools/local_dvg.py
-          (cd examples/python && DVG_SIGNING_SECRET=ci-secret python order_app.py & echo $! > /tmp/app.pid)
+          DVG_SIGNING_SECRET=ci-secret python examples/python/order_app.py & APP=$!
           sleep 2
-          DVG_SIGNING_SECRET=ci-secret python tools/local_dvg.py "강남역" "" "서초동" "착불" "네"
-          kill "$(cat /tmp/app.pid)"
+          DVG_SIGNING_SECRET=ci-secret python tools/local_dvg.py --expect completed "강남역" "" "서초동" "착불" "네"
+          DVG_SIGNING_SECRET=ci-secret python tools/local_dvg.py --expect transferred "강남역" "서초동" "착불" "아니요"
+          kill "$APP"; wait "$APP" || true
       - name: local_dvg — 시나리오 엔진(대리운전)
         run: |
-          (cd examples/python && DVG_SIGNING_SECRET=ci-secret DVG_APP_SCENARIO=scenarios/driver.json python slot_app.py & echo $! > /tmp/app.pid)
+          DVG_SIGNING_SECRET=ci-secret DVG_APP_SCENARIO=examples/python/scenarios/driver.json python examples/python/slot_app.py & APP=$!
           sleep 2
-          DVG_SIGNING_SECRET=ci-secret python tools/local_dvg.py "강남역" "판교" "자동이요" "네"
-          kill "$(cat /tmp/app.pid)"
+          DVG_SIGNING_SECRET=ci-secret python tools/local_dvg.py --expect completed "강남역" "판교" "자동이요" "네"
+          kill "$APP"; wait "$APP" || true
       - run: npm ci
         working-directory: examples/node
       - run: node --check examples/node/order_app.mjs

@@ -18,7 +18,8 @@ DVG 처럼 서명 헤더를 붙여 앱에 WebSocket 으로 연결하고, 발신�
     DVG_SIGNING_SECRET=test-secret python3 tools/local_dvg.py --file my_call.json
 
 빈 문자열("")은 «무응답» 입니다. 발화를 다 쓰고 앱이 또 물으면 «발신자가 끊음» 으로 끝납니다.
-종료 코드: 0 = 위반·말투 경고 없이 끝남 · 1 = 위반 또는 말투 경고가 있었다 · 2 = 연결 실패.
+종료 코드: 0 = 위반·말투 경고 없이 끝남 · 1 = 위반 또는 말투 경고가 있었다(또는 `--expect` 와 다른 결말) · 2 = 연결 실패.
+`--expect completed` 처럼 기대 결말을 주면 결말까지 확인합니다 — 엉뚱한 곳에서 사람에게 넘어가도 위반이 아니므로 결말을 함께 보십시오.
 """
 import argparse
 import asyncio
@@ -190,7 +191,7 @@ class Session:
         return {"type": "error", "code": "unknown_type", "message": f"모르는 type: {kind!r}"}, None
 
 
-async def run(url, app_id, secret, utterances, direction, settings):
+async def run(url, app_id, secret, utterances, direction, settings, expect=None):
     call_id = f"{int(time.time())}.local"
     ts = str(int(time.time()))
     headers = {
@@ -255,6 +256,9 @@ async def run(url, app_id, secret, utterances, direction, settings):
     print(f"\n결말: {reason} · 지시 {s.directives}회 · 위반 {len(s.violations)}건 · 말투 경고 {s.tone}건", flush=True)
     if s.utter and reason in ("completed", "transferred"):
         print(f"(쓰지 않은 발화 {len(s.utter)}개)", flush=True)
+    if expect and reason != expect:
+        print(f"❌ 기대한 결말은 {expect} 인데 {reason} 로 끝났다", flush=True)
+        return 1
     return 1 if s.violations or s.tone else 0
 
 
@@ -265,6 +269,8 @@ def main():
     ap.add_argument("--url", default=os.environ.get("DVG_LOCAL_URL", "ws://127.0.0.1:19999/relay"))
     ap.add_argument("--app-id", default=os.environ.get("DVG_APP_ID", "local-app"))
     ap.add_argument("--outbound", action="store_true", help="DVG 가 건 통화(setup.direction=outbound)로 흉내")
+    ap.add_argument("--expect", choices=["completed", "transferred", "caller_hangup"],
+                    help="기대 결말 — 다르면 종료 코드 1(명세서의 대화 예마다 적어 두면 회귀 시험이 된다)")
     ap.add_argument("--settings", help='설치별 설정 JSON(예: \'{"shopName":"꽃마을"}\')')
     a = ap.parse_args()
     secret = os.environ.get("DVG_SIGNING_SECRET") or os.environ.get("DVG_APP_SIGNING_SECRET")
@@ -277,7 +283,7 @@ def main():
         if not isinstance(utter, list) or not all(isinstance(u, str) for u in utter):
             raise SystemExit("--file 은 문자열 배열이어야 합니다")
     settings = json.loads(a.settings) if a.settings else None
-    sys.exit(asyncio.run(run(a.url, a.app_id, secret, utter, "outbound" if a.outbound else "inbound", settings)))
+    sys.exit(asyncio.run(run(a.url, a.app_id, secret, utter, "outbound" if a.outbound else "inbound", settings, a.expect)))
 
 
 if __name__ == "__main__":

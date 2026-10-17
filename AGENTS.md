@@ -59,9 +59,10 @@
 ## 4. 만들고 나서 반드시 확인 (AI 는 이 결과를 사용자에게 보여 준다)
 
 1. **서명 시험 벡터** — [`conformance/vector.json`](conformance/vector.json) 의 값을 앱의 검증 함수가 받아들이고, 비밀·시각이 틀리면 거절하는 단위 시험을 만든다.
-2. **로컬 흐름 점검** — 앱을 띄우고 [`tools/local_dvg.py`](tools/local_dvg.py) 로 명세서의 **대화 예 전부**를 돌린다. 종료 코드 0(위반·말투 경고 0건)이어야 한다.
+2. **로컬 흐름 점검** — 앱을 띄우고 [`tools/local_dvg.py`](tools/local_dvg.py) 로 명세서의 **대화 예 전부**를 **기대 결말과 함께**(`--expect`) 돌린다. 종료 코드 0(위반·말투 경고 0건 · 결말 일치)이어야 한다.
    ```bash
-   DVG_SIGNING_SECRET=test-secret python3 tools/local_dvg.py "강남역" "" "서초동" "착불" "네"
+   DVG_SIGNING_SECRET=test-secret python3 tools/local_dvg.py --expect completed "강남역" "" "서초동" "착불" "네"
+   DVG_SIGNING_SECRET=test-secret python3 tools/local_dvg.py --expect transferred "강남역" "서초동" "착불" "아니요"
    ```
    무응답(`""`) · 못 알아듣는 답 · 「아니요」 로 끝나는 경우도 각각 한 번씩 돌린다.
 3. **운영사 DVG 시험**(앱 키를 받은 뒤) — `POST /api/v1/apps/self/simulate` 로 같은 대화를 돌리고 `toneWarning` 이 **0건**인지 본다(주소·선택지 판정은 여기서만 진짜다).
