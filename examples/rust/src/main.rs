@@ -357,7 +357,9 @@ async fn handle(ws: WebSocketStream<TcpStream>) -> Result<(), AppError> {
     );
     if setup.channel == "chat" {
         // 🔴 웹 채팅은 상담·안내용 — 실제 주문을 만들지 않고 모은 내용을 메모로 상담원에게 넘긴다(계약 §3-17).
-        return s.end_note("transfer", "", &format!("채팅 문의 — {summary}")).await;
+        return s
+            .end_note("transfer", "", &format!("채팅 문의 — {summary}"))
+            .await;
     }
     if register_order(&order, &setup) {
         return s.end("hangup", "접수되었습니다. 감사합니다.").await;
