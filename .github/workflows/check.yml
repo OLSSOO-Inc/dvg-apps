@@ -14,6 +14,21 @@ jobs:
       - run: for f in scenarios/*.json; do python slot_app.py --check "$f"; done
         working-directory: examples/python
       - run: python conformance/check_python.py
+      # 🧪 로컬 DVG 흉내로 예제를 끝까지 돌린다 — 도구와 예제가 서로 어긋나면 여기서 드러난다.
+      - name: local_dvg — 주문 예제
+        run: |
+          python -m py_compile tools/local_dvg.py
+          DVG_SIGNING_SECRET=ci-secret python examples/python/order_app.py & APP=$!
+          sleep 2
+          DVG_SIGNING_SECRET=ci-secret python tools/local_dvg.py --expect completed "강남역" "" "서초동" "착불" "네"
+          DVG_SIGNING_SECRET=ci-secret python tools/local_dvg.py --expect transferred "강남역" "서초동" "착불" "아니요"
+          kill "$APP"; wait "$APP" || true
+      - name: local_dvg — 시나리오 엔진(대리운전)
+        run: |
+          DVG_SIGNING_SECRET=ci-secret DVG_APP_SCENARIO=examples/python/scenarios/driver.json python examples/python/slot_app.py & APP=$!
+          sleep 2
+          DVG_SIGNING_SECRET=ci-secret python tools/local_dvg.py --expect completed "강남역" "판교" "자동이요" "네"
+          kill "$APP"; wait "$APP" || true
       - run: npm ci
         working-directory: examples/node
       - run: node --check examples/node/order_app.mjs
