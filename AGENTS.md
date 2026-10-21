@@ -7,7 +7,7 @@
 
 - 계약은 [`docs/voice-relay-v1.md`](docs/voice-relay-v1.md) **하나**입니다. 메시지 이름·필드·상한은 거기 있는 것만 씁니다.
 - 🔴 **계약에 없는 필드·메시지를 지어내지 마십시오.** 모르면 계약 문서를 다시 읽고, 그래도 없으면 «없다» 고 말하십시오.
-  (예: `transfer` 에 번호 필드는 **없습니다** · 질문마다 음성인식 힌트를 바꾸는 필드도 **없습니다**)
+  (예: `transfer` 에 번호 필드는 **없습니다**)
 - 시작점은 예제입니다 — 새로 쓰기보다 [`examples/`](examples/) 의 같은 언어 예제를 복사해 고치십시오. 서명 검증·메시지 수신 코드는 **예제 것을 그대로** 씁니다.
 - 앱의 요구사항은 사용자가 준 **앱 명세서**([`docs/app-spec-template.md`](docs/app-spec-template.md) 양식)입니다. 명세서에 없는 업무 규칙을 지어내지 말고 물어보십시오.
 
@@ -50,6 +50,7 @@
 | 전화번호를 불러 받기 | `ask.expect:"phone"` — 계약 §3-13 |
 | 생년월일 | `ask.expect:"birth"` — 계약 §3-16 |
 | 생각하며 길게 말하는 답 | `ask.listenSeconds` (+ `endSilenceSeconds`) — 계약 §3-7 |
+| 이 물음의 대답이 될 낱말을 음성인식에 알리기 | `ask.keyterms`(`choices` 는 저절로 힌트) — 계약 §3-19 · 힌트 없이도 동작해야 한다 |
 | 사람 연결·근무 시간 안내 | `transfer`(+`note`) · `setup.staff.handoffNotice` — 계약 §3-12 · §3-15 |
 | 부서로 넘기기 | `setup.departments` → `transfer.department` — 계약 §3-18 |
 | 통화 상대에게 문자 | `sms` — 계약 §3-9 |
