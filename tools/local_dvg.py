@@ -188,6 +188,14 @@ class Session:
                     return {"type": "error", "code": "bad_expect", "message": "expect 는 address·phone·birth"}, None
                 if choices and expect != "birth":
                     return {"type": "error", "code": "bad_expect", "message": "choices 와 expect 는 함께 쓸 수 없다"}, None
+            keyterms = m.get("keyterms")
+            if keyterms is not None:
+                # 계약 §3-19 — 최대 10개 · 각 2~20자 · 중복 없음(앞뒤 공백은 떼고 센다). 힌트 적용 자체는 흉내 내지 않는다.
+                kts = [k.strip() for k in keyterms if isinstance(k, str)] if isinstance(keyterms, list) else None
+                ok = (kts is not None and len(kts) == len(keyterms) and len(kts) <= 10
+                      and all(2 <= len(k) <= 20 for k in kts) and len(set(kts)) == len(kts))
+                if not ok:
+                    return {"type": "error", "code": "bad_keyterms", "message": "keyterms 는 10개까지 · 각 2~20자 · 중복 없음"}, None
             text = m.get("text") or ""
             if self.narrowing and expect == "address" and text != self.narrowing:
                 self.violate("DVG 의 좁히는 질문(address.question)을 글자 그대로 묻지 않았다 — 그래야 다음 답을 좁혀 준다(계약 §3-5)")
