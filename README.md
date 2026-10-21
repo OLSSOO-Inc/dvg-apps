@@ -49,7 +49,7 @@ relay 주소 · 설치별 설정 항목 · 음성인식 힌트 낱말 · AI 고�
 | [Java](examples/java/src/main/java/io/olssoo/dvg/example/OrderApp.java) | `cd examples/java && mvn -q package` → `DVG_SIGNING_SECRET=… java -jar target/order-app.jar` (Java 17+ · 의존성 포함 jar 하나) |
 | [Rust](examples/rust/src/main.rs) · [안내](examples/rust/README.md) | `cd examples/rust && DVG_SIGNING_SECRET=… cargo run` (최신 stable · 사이드카용은 `cargo build --release` 로 바이너리 하나) |
 
-다섯 예제(Python · Node.js · Go · Java · Rust)는 같은 일을 합니다 — 출발지·도착지·결제를 묻고, 복창하고, 등록하고, 끝냅니다. 못 알아들으면 **질문을 바꿔 한 번 더** 묻고, 그래도 안 되면 사람에게 넘깁니다.
+다섯 예제(Python · Node.js · Go · Java · Rust)는 같은 일을 합니다 — 출발지·도착지를 **`expect:"address"` 로 DVG 에 풀게 해** 묻고(여러 곳이면 DVG 의 좁히는 질문을 그대로), 결제를 선택지로 묻고, 복창하고, 등록하고, 끝냅니다. 못 알아들으면 **질문을 바꿔 한 번 더** 묻고, 그래도 안 되면 사람에게 넘깁니다. 웹 채팅(`setup.channel:"chat"`)이면 주문을 만들지 않고 모은 내용을 메모로 사람에게 넘깁니다. CI 가 다섯 예제를 [같은 다섯 대화](tools/check_order_example.sh)로 돌려 결말이 같은지 봅니다.
 모두 기본으로 `ws://127.0.0.1:19999/relay` 에서 기다리고, 같은 서버(사이드카)로 돌리면 DVG 가 넣어 주는 `DVG_APP_*` 환경변수를 읽습니다.
 실제 주문 등록은 각 예제의 등록 함수 자리에 여러분의 업무 API 호출을 넣으면 됩니다. Python 예제는 [Dockerfile](examples/python/Dockerfile)(Cloud Run 용)도 있습니다.
 
@@ -67,8 +67,17 @@ relay 주소 · 설치별 설정 항목 · 음성인식 힌트 낱말 · AI 고�
 ⭐ **주소는 앱이 풀지 않습니다** — `ask` 에 `"expect":"address"` 를 실으면 DVG 가 발신자의 답을 시·도/구·군/동으로 풀어 주고, 같은 이름이 여러 곳이면
 **좁히는 질문**까지 만들어 줍니다([계약 §3-5](docs/voice-relay-v1.md)). 한 통의 메시지 전부는 [계약 §3-6](docs/voice-relay-v1.md) 에 있습니다.
 
+## 직접 만들기 · AI 로 만들기
+
+코딩을 직접 하든 AI 도구에 맡기든 순서는 같습니다 — **[앱 명세서](docs/app-spec-template.md)를 채우고 → [내 앱 만들기](docs/build-your-app.md)의 길 하나를 고르고 → 키 없이 [로컬 점검](tools/local_dvg.py) → 운영사 등록 → `simulate`.**
+AI 도구는 이 저장소의 [AGENTS.md](AGENTS.md)를 먼저 읽고 그 규칙대로 만듭니다(웹 채팅이면 그 파일을 붙여 넣으십시오).
+
 ## 문서
 
+- 🛠 [내 앱 만들기 — 직접 코딩 · AI 로 생성](docs/build-your-app.md) — 명세서 → 길 고르기(시나리오만 · 예제 고치기 · AI) → 키 없이 로컬 점검 → simulate → 배포. **AI 에게 맡기는 프롬프트**가 들어 있습니다
+- 📝 [앱 명세서 양식](docs/app-spec-template.md) — 무엇을 묻고 어디에 등록하고 언제 사람에게 넘기는지. 직접 만들든 AI 에게 맡기든 이것부터
+- 🤖 [AGENTS.md](AGENTS.md) — AI 코딩 도구(Claude Code · Codex · Cursor 등)가 먼저 읽는 규칙 · 사람이 AI 결과를 검토할 때의 기준
+- 🧪 [로컬 DVG 흉내](tools/local_dvg.py) — 앱 키 없이 내 컴퓨터에서 대화 흐름·계약 위반·말투를 점검
 - 📘 [시작하기](docs/getting-started.md) — 등록 받기 · 어디서 돌리나(다른 서버 / DVG 와 같은 서버) · 대화 규칙 · 시험 · 체크리스트
 - 🚀 [실서버 설치 퀵 가이드](docs/deploy-quickstart.md) — 같은 서버(사이드카) · 다른 서버(nginx `wss` + systemd) · 서버 없이(Cloud Run 컨테이너) · 콘솔 HTTPS. 설정 파일은 [`deploy/`](deploy/) 에 있습니다
 - 📜 [관리형 음성 레이어 계약 v1](docs/voice-relay-v1.md) — 메시지 · 서명 · 결말 · 상한

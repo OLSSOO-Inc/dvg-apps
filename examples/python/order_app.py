@@ -102,6 +102,35 @@ async def ask(ws, text, choices=None):
     return msg.get("text", "").strip()
 
 
+async def ask_address(ws, question, again, label):
+    """주소를 묻는다 — DVG 가 시·도/구·군/동으로 풀어 준다(계약 §3-5). 복창용 한 줄, 못 얻으면 빈 문자열.
+
+    - resolved  → DVG 가 만든 한 줄(`line`)에 동 뒤의 말(`detailClean`)을 붙인다.
+    - ambiguous → DVG 의 좁히는 질문(`question`)을 **글자 그대로** 다시 묻는다 — 그래야 다음 답(「서울이요」)을 좁혀 준다.
+    - unavailable(또는 `address` 가 없는 오래된 DVG) → 발화 원문을 쓴다(마지막 복창이 확인한다).
+    - 그 밖(무응답 · 주소로 못 읽음 · 일부만 들음) → **바꾼 질문**으로 한 번 더, 그래도 없으면 빈 값(→ 사람에게).
+    """
+    text = question
+    for _ in range(3):  # 첫 질문 + 바꾼 질문 + (여러 곳일 때) DVG 의 좁히는 질문
+        await ws.send(json.dumps({"type": "ask", "text": text, "expect": "address", "label": label}, ensure_ascii=False))
+        msg = await recv(ws)
+        heard = "" if msg.get("silence") else msg.get("text", "").strip()
+        addr = msg.get("address") or {}
+        status = addr.get("status")
+        if status == "resolved":
+            detail = addr.get("detailClean") or addr.get("detail") or ""
+            return f"{addr.get('line', '')} {detail}".strip()
+        if heard and (status == "unavailable" or "address" not in msg):
+            return heard
+        if status == "ambiguous" and addr.get("question"):
+            text = addr["question"]
+            continue
+        if text == again:
+            break  # 바꾼 질문으로도 못 얻었다 — 더 묻지 않는다
+        text = again
+    return ""
+
+
 async def say(ws, text):
     await ws.send(json.dumps({"type": "say", "text": text}))
     await recv(ws)  # said
@@ -125,15 +154,18 @@ async def handler(ws):
         print("통화 시작", setup.get("callId"), "발신번호 제공" if caller else "발신번호 없음", flush=True)
 
         order = {}
-        # (칸, 첫 질문, 다시 물을 때의 질문) — 🔴 같은 문장을 되풀이하지 않는다. 다시 물을 때는 **질문을 바꾼다**.
-        for key, question, again, choices in (
-                ("origin", "어디에서 보내시나요?", "제가 잘 못 들었습니다. 물건을 가지러 갈 곳을 말씀해 주세요.", None),
-                ("destination", "어디로 보내시나요?", "제가 잘 못 들었습니다. 물건을 받으실 곳을 말씀해 주세요.", None),
+        # (칸, 첫 질문, 다시 물을 때의 질문, 선택지, 주소 칸 이름) — 🔴 같은 문장을 되풀이하지 않는다. 다시 물을 때는 **질문을 바꾼다**.
+        for key, question, again, choices, label in (
+                ("origin", "어디에서 보내시나요?", "제가 잘 못 들었습니다. 물건을 가지러 갈 곳의 구와 동을 말씀해 주세요.", None, "출발지"),
+                ("destination", "어디로 보내시나요?", "제가 잘 못 들었습니다. 물건을 받으실 곳의 구와 동을 말씀해 주세요.", None, "도착지"),
                 ("pay", "선불. 착불. 결제는 어느 쪽인가요?", "제가 잘 못 들었습니다. 선불이면 「선불」. 착불이면 「착불」.",
-                 ["선불", "착불"])):
-            answer = await ask(ws, question, choices)
-            if not answer:
-                answer = await ask(ws, again, choices)  # 두 번째는 바꾼 질문으로 — 그래도 없으면 사람에게
+                 ["선불", "착불"], None)):
+            if label:
+                answer = await ask_address(ws, question, again, label)  # 주소는 DVG 가 풀어 준다(앱이 파싱하지 않는다)
+            else:
+                answer = await ask(ws, question, choices)
+                if not answer:
+                    answer = await ask(ws, again, choices)  # 두 번째는 바꾼 질문으로 — 그래도 없으면 사람에게
             if not answer:
                 # 못 알아들으면 사람에게 넘긴다 — 번호는 DVG 가 정한다(앱이 지정할 수 없다)
                 await ws.send(json.dumps({"type": "transfer"}))
@@ -145,6 +177,13 @@ async def handler(ws):
         confirm = await ask(ws, f"출발 {order['origin']}. 도착 {order['destination']}. 결제 {order['pay']}. 맞으면 「네」라고 말씀해 주세요.")
         if not confirm.startswith(("네", "예", "맞")):
             await ws.send(json.dumps({"type": "transfer"}))
+            await recv(ws)
+            return
+
+        summary = f"출발 {order['origin']}. 도착 {order['destination']}. 결제 {order['pay']}."
+        if setup.get("channel") == "chat":
+            # 🔴 웹 채팅은 상담·안내용 — 실제 주문을 만들지 않고 모은 내용을 메모로 상담원에게 넘긴다(계약 §3-17).
+            await ws.send(json.dumps({"type": "transfer", "note": "채팅 문의 — " + summary}, ensure_ascii=False))
             await recv(ws)
             return
 

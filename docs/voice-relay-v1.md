@@ -104,7 +104,7 @@ DVG → 앱   end
 | `said` | — | `say` 재생이 끝났다 |
 | `prompt` | `text` · `silence` · `lowConfidence` · `spokeDuringPlayback` · `heardVoice`(DVG 1.4.16.261 이상 — 소리는 있었는데 말로 인식되지 않았다 · 무응답과 «말했는데 못 알아들음» 을 가른다) · (선택지를 줬으면) `choice` · `choiceIndex` · `choiceSource` · `confirm` · `choiceAmbiguous` · (`expect:"address"` 였으면) `address` · (`expect:"birth"` 였으면 · DVG 1.4.16.372 이상) `birth` · (채팅에서 방문자가 사진을 보냈으면 · DVG 1.4.16.428 이상) `image` · (긴 듣기를 **적용했으면**) `listenSeconds` · (일찍 닫기를 **적용했으면**) `endSilenceSeconds` | `ask` 뒤 발신자가 한 말. `silence:true` 면 아무 말도 없었다. 선택지 판정은 §3-4, 주소는 §3-5, 생년월일은 §3-16 |
 | `sms_result` | `status` · `code`(선택) | `sms` 결과(DVG 1.4.16.307 이상 · §3-9). 🔴 **실패여도 오류가 아닙니다**(위반 횟수에 세지 않습니다) |
-| `error` | `code` · `message` | 지시가 잘못됐다 — `unknown_type` · `text_required` · `text_too_long` · `bad_choices` · `bad_expect` · `bad_listen_seconds` · `bad_end_silence_seconds` · `unknown_department`(§3-18). **3번 넘으면** 통화가 사람에게 간다 |
+| `error` | `code` · `message` | 지시가 잘못됐다 — `unknown_type` · `text_required` · `text_too_long` · `bad_choices` · `bad_expect` · `bad_listen_seconds` · `bad_end_silence_seconds` · `bad_keyterms`(§3-19) · `unknown_department`(§3-18). **3번 넘으면** 통화가 사람에게 간다 |
 | `end` | `reason` | 세션 끝(§4 결말). 이 뒤로는 보내도 소용없습니다. DVG 는 `end` 뒤에 **WebSocket close(1000)** 로 연결을 닫습니다(DVG 1.4.16.275 이상). ⚠️ **`end` 없이 연결이 닫혀도 통화는 끝난 것입니다** — 앞에 프록시(Cloud Run 등)가 있으면 `end` 가 오기 전에 닫힐 수 있고, DVG 1.4.16.274 이하는 close 프레임 없이 끊습니다. 그때 결말은 **모른다**로 두십시오(예제 앱은 `reason:"closed"`) |
 
 ### 3-3. 앱 → DVG
@@ -112,7 +112,7 @@ DVG → 앱   end
 | type | 필드 | 동작 |
 |---|---|---|
 | `say` | `text`(필수 · 500자 이하) · `interruptible`(선택 · DVG 1.4.16.261 이상) | 끝까지 말한다(끼어들어도 멈추지 않음) → `said`. `interruptible:true` 면 **발신자가 끼어들 때 멈춘다**(듣지는 않는다 — 이어서 `ask{text:""}` 로 듣는다). ⚠️ 복창·결제 안내처럼 **끝까지 들려야 하는 말에는 쓰지 마십시오** |
-| `ask` | `text`(선택 · 500자 이하) · `choices`(선택 · 2~6개 · 각 1~20자 · 중복 없음) · `expect`(선택 · `"address"` · `"phone"`(DVG 1.4.16.339 이상 · §3-13) · `"birth"`(DVG 1.4.16.372 이상 · §3-16)) · `label`(선택 · `expect` 와 함께 · 1~10자) · `listenSeconds`(선택 · 5~90 · §3-7) · `endSilenceSeconds`(선택 · 2~10 · `listenSeconds` 와 함께만 · §3-7) · `discardEarlier`(선택 · `true` · DVG 1.4.16.384 이상 · §3-7) | 질문을 말하고(발신자가 끼어들면 멈춤) **발신자 답을 듣는다** → `prompt`. `text` 가 비면 말없이 듣기만 한다. `choices` 가 규칙에 어긋나면 **묻지 않고** `error bad_choices`. `expect` 는 §3-5(`choices` 와 함께 쓰면 `bad_expect` — 단 `"birth"` 는 함께 쓴다 · §3-16) |
+| `ask` | `text`(선택 · 500자 이하) · `choices`(선택 · 2~6개 · 각 1~20자 · 중복 없음) · `expect`(선택 · `"address"` · `"phone"`(DVG 1.4.16.339 이상 · §3-13) · `"birth"`(DVG 1.4.16.372 이상 · §3-16)) · `label`(선택 · `expect` 와 함께 · 1~10자) · `listenSeconds`(선택 · 5~90 · §3-7) · `endSilenceSeconds`(선택 · 2~10 · `listenSeconds` 와 함께만 · §3-7) · `discardEarlier`(선택 · `true` · DVG 1.4.16.384 이상 · §3-7) · `keyterms`(선택 · 최대 10개 · 각 2~20자 · DVG 1.4.17.52 이상 · §3-19) | 질문을 말하고(발신자가 끼어들면 멈춤) **발신자 답을 듣는다** → `prompt`. `text` 가 비면 말없이 듣기만 한다. `choices` 가 규칙에 어긋나면 **묻지 않고** `error bad_choices`. `expect` 는 §3-5(`choices` 와 함께 쓰면 `bad_expect` — 단 `"birth"` 는 함께 쓴다 · §3-16) |
 | `sms` | `text`(필수 · **80바이트** 이하 — 한글 약 40자) | **통화 상대에게 문자 한 통**(DVG 1.4.16.307 이상 · §3-9) → `sms_result`. 🔴 받는 사람은 지정할 수 없습니다 |
 | `transfer` | `note`(선택 · 1,000자 이하 · DVG 1.4.16.334 이상 · §3-12) · `department`(선택 · DVG 1.4.16.429 이상 · §3-18) | **사람에게 연결**. 🔴 번호는 지정할 수 없습니다 — 그 주문 회사에 운영사가 정한 호전환 번호로 갑니다. `note` 는 상담원에게 전달할 메모(DVG 기록에 남는다) |
 | `hangup` | `text`(선택 · 마지막 인사) · `note`(선택 · DVG 1.4.16.336 이상 · §3-12) | 인사 후 통화 종료 |
@@ -386,8 +386,8 @@ DVG 가 여전히 **앱보다 먼저** 재생하고(`setup.noticePlayed`), 앱�
 **미리 합성** — 곧 말할 문장(대개 첫 질문 뒤에 나올 문장)을 미리 보내 두면 그 문장을 말할 때 합성을 기다리지 않습니다.
 
 ```json
-→ {"type":"prepare","texts":["화분은 포인세티아 5만4천원으로 준비할게요.","근조 화환은 근조 오브제 5만9천원으로 준비할게요."]}
-← {"type":"prepared","accepted":2}
+← {"type":"prepare","texts":["화분은 포인세티아 5만4천원으로 준비할게요.","근조 화환은 근조 오브제 5만9천원으로 준비할게요."]}
+→ {"type":"prepared","accepted":2}
 ```
 
 - 1~8문장 · 각 200자 이하(어기면 `error bad_prepare`) · **통화당 12문장**까지 받아들입니다(넘은 것·같은 문장은 `accepted` 에서 빠집니다).
@@ -607,6 +607,25 @@ setup 에 실어 줍니다. 근무 시간은 운영사가 회사마다 정합니
 - 둘 이상이 들리면 고르지 말고 되물으십시오(`ask.choices` 에 부서 이름).
 - `key` 는 이름이 바뀌어도 그대로입니다 — 이름이 아니라 `key` 를 보내십시오.
 - ⚠️ 구버전 DVG(1.4.16.428 이하)는 `department` 를 모르고 회사 번호로 연결합니다.
+
+### 3-19. 물음별 음성인식 힌트(`ask.keyterms`) — DVG 1.4.17.52 이상
+
+앱 등록의 `keyterms`(§5-4)는 **통화 내내** 같은 힌트입니다. 물음마다 대답이 될 낱말이 다를 때(상품 이름 · 지명 · 사람 이름)는
+`ask` 에 `keyterms` 를 실으면 **그 물음 동안** 음성인식이 그 낱말을 먼저 떠올립니다.
+
+```json
+{"type":"ask","text":"근조 화환. 축하 화환. 어느 쪽인가요?","choices":["근조 화환","축하 화환"],"keyterms":["근조","축하"]}
+```
+
+- **최대 10개 · 각 2~20자 · 중복 없음.** 어긋나면 **묻지 않고** `{"type":"error","code":"bad_keyterms"}` 입니다(위반 횟수에 셉니다).
+- ⭐ `choices` 가 있으면 **그것도 함께** 힌트가 됩니다 — 선택지를 `keyterms` 에 다시 적을 필요는 없습니다.
+- 다음 `ask` 에 `keyterms`·`choices` 가 없으면 앱 등록 `keyterms` 로 **되돌아갑니다.**
+- ⚠️ **힌트는 보장이 아니라 도움입니다.** 운영사가 이 기능을 켜지 않았거나 음성인식 환경이 지원하지 않으면 **조용히 무시**되고(오류 없음)
+  대답은 그대로 옵니다 — 적용됐는지는 `prompt` 에 싣지 않습니다. 앱은 힌트가 없어도 같은 흐름으로 동작해야 합니다.
+- ⚠️ 힌트 목록은 **통화를 시작할 때 쓴 목록의 크기 안에서** 잘립니다(물음 낱말이 앞에 남습니다). 앱 등록 `keyterms` 가 비어 있고
+  운영사 쪽 기본 힌트도 없으면 아무 효과가 없습니다 — 쓰려면 등록 `keyterms` 를 함께 넣으십시오.
+- 낱말 하나에 문장을 넣지 마십시오. «이 낱말이 나올 수 있다» 는 신호라서 짧은 낱말이 낫습니다.
+- 모르는 DVG(1.4.17.51 이하)는 이 필드를 무시합니다(종전대로 · 오류 없음).
 
 ## 4. 결말과 상한
 
