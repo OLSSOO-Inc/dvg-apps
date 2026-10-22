@@ -11,7 +11,7 @@
 
 - 필드 추가(버전 불변). `ask` 에 `keyterms`(최대 10개 · 각 2~20자)를 실으면 그 물음 동안 음성인식 힌트가 됩니다. `choices` 도 함께 힌트가 됩니다(계약 §3-19).
 - 형식이 틀리면 `error bad_keyterms`. 운영사가 켜지 않았거나 지원하지 않는 환경이면 조용히 무시됩니다 — 앱은 힌트 없이도 같은 흐름으로 동작해야 합니다.
-- AGENTS.md 의 «질문마다 음성인식 힌트를 바꾸는 필드는 없다» 문구를 지웠습니다.
+- AGENTS.md 의 «질문마다 음성인식 힌트를 바꾸는 필드는 없다» 문구를 지웠습니다. [getting-started](docs/getting-started.md) 의 «v1 에 없는 것» 에 남아 있던 같은 문구도 지우고 `ask.keyterms` 안내로 바꿨습니다.
 - [`tools/local_dvg.py`](tools/local_dvg.py) 가 `keyterms` 형식을 DVG 와 같이 검사합니다(`bad_keyterms`). 힌트 적용 자체는 흉내 내지 않습니다.
 
 ## 예제 — Go 예제를 Go 1.26.10 으로 빌드 (예제)
