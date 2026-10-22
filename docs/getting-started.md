@@ -103,6 +103,8 @@ curl -sS -X PUT -H "Authorization: Bearer $DVG_APP_KEY" -H 'Content-Type: applic
 
 relay 주소는 운영사가 등록한 **허용 호스트 안에서만** 바뀝니다. 칸·오류 코드는 [계약 §5-4](voice-relay-v1.md#5-4-앱-설정-고치기--dvg-1416393-이상).
 
+앱 등록의 `keyterms` 는 통화 내내 쓰이는 힌트입니다. 물음마다 바꾸려면 `ask.keyterms` 를 씁니다(DVG 1.4.17.52 이상 · [계약 §3-19](voice-relay-v1.md#3-19-물음별-음성인식-힌트askkeyterms--dvg-141752-이상)).
+
 **내 사용량**:
 
 ```bash
@@ -140,7 +142,6 @@ curl -sS -H "Authorization: Bearer $DVG_APP_KEY" "https://<DVG 주소>/api/v1/ap
 
 ## 6. v1 에 없는 것
 
-- 질문마다 음성인식 힌트 바꾸기(앱 등록 단위 낱말만 된다)
 - 앱이 사람 연결 번호를 지정하기 — 일부러 막았습니다
 - 원시 오디오 스트림
 - 운영사 관리 화면 안의 앱 화면
