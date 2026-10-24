@@ -55,6 +55,7 @@
 | 사람 연결·근무 시간 안내 | `transfer`(+`note`) · `setup.staff.handoffNotice` — 계약 §3-12 · §3-15 |
 | 부서로 넘기기 | `setup.departments` → `transfer.department` — 계약 §3-18 |
 | 회사가 적어 둔 답(영업시간·위치·요금)과 링크 | `setup.faqs` 의 `answer` 를 그대로 · 링크는 `say.link`(채팅에서만 버튼) — 계약 §3-20 |
+| 회사 상호·전화·주소·주차·운영 시간 | `setup.company`(적은 칸만) · 그 값으로 만든 답은 `company.answers`(`faqs` 다음에 본다) — 계약 §3-21 |
 | 통화 상대에게 문자 | `sms` — 계약 §3-9 |
 
 행정구역 사전·주소 파서·음성인식 보정기를 앱 안에 만들지 마십시오. DVG 가 고치면 모든 앱이 함께 좋아지고, 앱이 따로 만들면 그 앱만 틀린 채 남습니다.

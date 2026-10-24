@@ -101,7 +101,7 @@ DVG → 앱   end
 
 | type | 필드 | 뜻 |
 |---|---|---|
-| `setup` | `version` · `callId` · `tenantId` · `orgId` · `appId` · `did` · `noticePlayed` · `direction` · `caller`(조건부) · `simulated`(조건부) · `settings`(조건부) · `ringing`(조건부 · DVG 1.4.16.340 이상 · §3-14) · `staff`(조건부 · DVG 1.4.16.362 이상 · §3-15) · `channel`(조건부 · DVG 1.4.16.412 이상 · §3-17) · `visitor`(조건부 · 채팅에서만 · DVG 1.4.16.423 이상 · §3-17) · `member`(조건부 · 채팅에서만 · DVG 1.4.16.426 이상 · §3-17) · `departments`(조건부 · DVG 1.4.16.429 이상 · §3-18) · `faqs`(조건부 · DVG 1.4.17.67 이상 · §3-20) | 통화 시작. `direction` 은 `"inbound"`(상대가 걸어왔다) 또는 `"outbound"`(DVG 가 걸었다 · DVG 1.4.16.292 이상) — **없으면 수신**(구버전 DVG). `caller` 는 **운영사가 설치에서 발신번호 제공을 켰을 때만** 있고, 발신 통화에서도 **상대 번호**입니다(키 자체가 없으면 «제공하지 않음»). 🔴 **`simulated:true` 는 전화 없는 시험**(DVG 1.4.16.259 이상) — 그때는 **실제 주문을 만들지 마십시오**(실통화에서는 키가 없습니다) |
+| `setup` | `version` · `callId` · `tenantId` · `orgId` · `appId` · `did` · `noticePlayed` · `direction` · `caller`(조건부) · `simulated`(조건부) · `settings`(조건부) · `ringing`(조건부 · DVG 1.4.16.340 이상 · §3-14) · `staff`(조건부 · DVG 1.4.16.362 이상 · §3-15) · `channel`(조건부 · DVG 1.4.16.412 이상 · §3-17) · `visitor`(조건부 · 채팅에서만 · DVG 1.4.16.423 이상 · §3-17) · `member`(조건부 · 채팅에서만 · DVG 1.4.16.426 이상 · §3-17) · `departments`(조건부 · DVG 1.4.16.429 이상 · §3-18) · `faqs`(조건부 · DVG 1.4.17.67 이상 · §3-20) · `company`(조건부 · DVG 1.4.17.72 이상 · §3-21) | 통화 시작. `direction` 은 `"inbound"`(상대가 걸어왔다) 또는 `"outbound"`(DVG 가 걸었다 · DVG 1.4.16.292 이상) — **없으면 수신**(구버전 DVG). `caller` 는 **운영사가 설치에서 발신번호 제공을 켰을 때만** 있고, 발신 통화에서도 **상대 번호**입니다(키 자체가 없으면 «제공하지 않음»). 🔴 **`simulated:true` 는 전화 없는 시험**(DVG 1.4.16.259 이상) — 그때는 **실제 주문을 만들지 마십시오**(실통화에서는 키가 없습니다) |
 | `said` | — | `say` 재생이 끝났다 |
 | `prompt` | `text` · `silence` · `lowConfidence` · `spokeDuringPlayback` · `heardVoice`(DVG 1.4.16.261 이상 — 소리는 있었는데 말로 인식되지 않았다 · 무응답과 «말했는데 못 알아들음» 을 가른다) · (선택지를 줬으면) `choice` · `choiceIndex` · `choiceSource` · `confirm` · `choiceAmbiguous` · (`expect:"address"` 였으면) `address` · (`expect:"birth"` 였으면 · DVG 1.4.16.372 이상) `birth` · (채팅에서 방문자가 사진을 보냈으면 · DVG 1.4.16.428 이상) `image` · (긴 듣기를 **적용했으면**) `listenSeconds` · (일찍 닫기를 **적용했으면**) `endSilenceSeconds` | `ask` 뒤 발신자가 한 말. `silence:true` 면 아무 말도 없었다. 선택지 판정은 §3-4, 주소는 §3-5, 생년월일은 §3-16 |
 | `sms_result` | `status` · `code`(선택) | `sms` 결과(DVG 1.4.16.307 이상 · §3-9). 🔴 **실패여도 오류가 아닙니다**(위반 횟수에 세지 않습니다) |
@@ -660,6 +660,50 @@ setup 에 실어 줍니다. 근무 시간은 운영사가 회사마다 정합니
 - **질문이 없는 회사는 `faqs` 키가 없습니다.** 그때는 앱 자기 설정(§3-8)의 답을 쓰면 됩니다.
 - `say.link` 는 `faqs` 와 상관없이 쓸 수 있습니다(예: 접수 확인 페이지). 채팅에서만 보입니다.
 - ⚠️ 구버전 DVG(1.4.17.66 이하)는 `faqs` 를 싣지 않고 `say.link` 를 무시합니다(글만 말함 · 오류 없음).
+
+### 3-21. 회사 기본정보(`setup.company`) — DVG 1.4.17.72 이상
+
+운영사가 회사의 기본정보를 적어 두었으면 setup 에 실립니다. 상호·전화·주소처럼 **어느 앱에나 필요한 사실**을 앱마다 설정으로 받지 않아도 됩니다.
+
+```json
+"company": {
+  "name": "예시 치과",
+  "bizNo": "124-81-00998",
+  "phone": "02-1234-5678",
+  "fax": "02-1234-5679",
+  "email": "help@example.com",
+  "postalCode": "06234",
+  "address": "서울 강남구 테헤란로 1 3층",
+  "website": "https://www.example.com",
+  "mapUrl": "https://map.example.com/x",
+  "parking": "건물 지하 2층에 주차하실 수 있습니다.",
+  "directions": "역삼역 3번 출구에서 걸어서 5분입니다.",
+  "hours": "운영 시간은 월요일부터 금요일까지 오전 9시부터 오후 6시까지입니다. 토요일과 일요일은 쉽니다.",
+  "answers": [
+    {"label": "주차 안내", "keywords": ["주차"], "answer": "건물 지하 2층에 주차하실 수 있습니다."},
+    {"label": "주소", "keywords": ["주소", "소재지", "우편번호"], "answer": "주소는 서울 강남구 테헤란로 1 3층입니다. 우편번호는 06234입니다.",
+     "link": {"label": "지도 보기", "url": "https://map.example.com/x"}}
+  ]
+}
+```
+
+| 필드 | 뜻 |
+|---|---|
+| `name` | 손님에게 말하는 상호 — 인사에 쓰십시오. 앱 설치 설정(§3-8)에 이름 칸이 있으면 **그 값이 먼저**입니다 |
+| `bizNo` · `phone` · `fax` | 하이픈이 든 보일 모양 |
+| `email` · `postalCode` · `address` | 적은 그대로 |
+| `website` · `mapUrl` | `https://` 주소 — 채팅에서 `say.link` 로 보이면 됩니다 |
+| `parking` · `directions` | 그대로 읽을 문장(물음 없음 · 예시는 마침표로 끊음) |
+| `hours` | 운영 시간을 읽을 문장(운영사가 정한 시간표에서 만든다) |
+| `answers` | 위 값들로 만든 **답**(`faqs` 와 같은 모양) — 손님 말에 `keywords` 가 들리면 `answer` 를 **그대로** 말하십시오(§3-20 과 같은 규칙) |
+
+- **적은 칸만** 실립니다. 아무것도 없는 회사는 `company` 키가 없습니다.
+- `answers` 는 `faqs`(운영사가 직접 적은 질문)와 **따로** 옵니다. 두 목록의 낱말이 겹치는 답은 `answers` 에서 이미 빠졌습니다 —
+  `faqs` 를 먼저 보고 그다음 `answers` 를 보면 됩니다.
+- `faqs` 의 뜻은 바뀌지 않습니다(«운영사가 직접 적은 질문 · 없으면 앱 자기 설정»). 앱 자기 설정의 답을 쓰는 앱도 `answers` 를 **뒤에** 붙여 쓸 수 있습니다.
+- `name` 은 운영사가 상호를 적었을 때만 있습니다(비면 앱 자기 설정·기본값을 쓰십시오).
+- ⚠️ 주문·예약을 받는 앱은 «받는 분 전화번호는…» 같은 주문 말을 `answers` 로 잘못 받지 않게 조심하십시오 — 문의를 묻는 자리에서만 쓰는 것이 안전합니다.
+- ⚠️ 구버전 DVG(1.4.17.71 이하)는 `company` 를 싣지 않습니다.
 
 ## 4. 결말과 상한
 
