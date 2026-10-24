@@ -47,6 +47,7 @@ import os
 import re
 import sys
 import time
+import urllib.parse
 
 from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed, InvalidStatus
@@ -119,6 +120,20 @@ def pick_choice(text, choices):
     return {}
 
 
+def clean_link(link):
+    """계약 §3-20 의 링크 규칙: 이름 1~20자 · https 주소 500자 이하 · 공백·따옴표·꺾쇠 없음. 아니면 None."""
+    if not isinstance(link, dict):
+        return None
+    label = " ".join(str(link.get("label") or "").split())
+    url = str(link.get("url") or "").strip()
+    if not (1 <= len(label) <= 20) or not url or len(url) > 500 or re.search(r"[\s\"'<>]", url):
+        return None
+    u = urllib.parse.urlsplit(url)
+    if u.scheme.lower() != "https" or not u.hostname or "@" in u.netloc:
+        return None
+    return {"label": label, "url": url}
+
+
 class Session:
     def __init__(self, utterances, direction):
         self.utter = [u if isinstance(u, dict) else {"text": u} for u in utterances]
@@ -130,6 +145,7 @@ class Session:
         self.tone = 0
         self.narrowing = ""  # 직전 prompt 에 실은 DVG 의 좁히는 질문(address.question)
         self.direction = direction
+        self.chat = False  # setup.channel == "chat" 이면 run() 이 켠다(say.link 를 버튼으로 흉내)
 
     def out(self, who, text):
         print(f"{who} {text}", flush=True)
@@ -170,6 +186,15 @@ class Session:
             w = tone_warning(m["text"])
             if w:
                 self.warn(w)
+            if m.get("link") is not None:
+                # 계약 §3-20 — 틀린 링크는 DVG 도 오류 없이 링크만 버리고 말은 그대로 한다.
+                link = clean_link(m.get("link"))
+                if link is None:
+                    self.out("  ℹ️", "say.link 를 버렸습니다(https 주소 · 이름 1~20자가 아님) — 말은 그대로 갑니다")
+                elif self.chat:
+                    self.out("  🔗", f"[{link['label']}] {link['url']}")
+                else:
+                    self.out("  🔗", f"(전화에서는 보이지 않습니다) [{link['label']}] {link['url']}")
             return {"type": "said"}, None
         if kind == "ask":
             code = self.check_text(m, required=False)
@@ -276,6 +301,7 @@ async def run(url, app_id, secret, utterances, direction, settings, expect=None,
         "X-DVG-Signature": sign(secret, app_id, call_id, ts), "X-DVG-Relay-Version": "1",
     }
     s = Session(utterances, direction)
+    s.chat = (setup_extra or {}).get("channel") == "chat"
     try:
         ws = await asyncio.wait_for(connect(url, additional_headers=headers), timeout=6)
     except InvalidStatus as e:
