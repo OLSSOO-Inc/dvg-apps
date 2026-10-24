@@ -2,6 +2,13 @@
 
 필드 추가는 버전을 올리지 않습니다(모르는 필드는 무시). **기존 앱을 깨뜨리는 변경만** 버전을 올립니다.
 
+## 챗봇 연결 — 웹훅 JSON v1 · OpenAI 호환 (DVG 1.4.17.68+)
+
+- 새 계약(앱 계약 v1 은 그대로). 이미 챗봇이 있는 회사는 앱을 만들지 않고 운영사의 «챗봇 연결» 앱에 챗봇 주소를 넣습니다 — [챗봇 연결](docs/chatbot-bridge.md).
+  - **OpenAI 호환**: `/chat/completions` 에 최근 20줄 기록 + 말투 지시를 보내고, 사람 연결·끝내기는 도구 `transfer_to_human`·`end_conversation`(도구를 모르는 서버는 400 뒤 도구 없이 한 번 다시).
+  - **웹훅 JSON v1**: `start`·`message`·`end` 이벤트 → `{reply, action, department, note, link, choices}` · 본문 서명 `X-DVG-Signature`(시험 벡터는 문서 §4-3).
+- [`examples/chatbot-webhook/`](examples/chatbot-webhook/) — 표준 라이브러리만 쓰는 웹훅 예제와 시험(서명 벡터 · 요청·응답 모양). CI 가 돌립니다.
+
 ## 회사가 적어 둔 자주 묻는 질문 `setup.faqs` · 링크 버튼 `say.link` (DVG 1.4.17.67+)
 
 - 필드 추가(버전 불변). 운영사가 회사에 적어 둔 «자주 묻는 질문»(이름·낱말·답·링크)이 `setup.faqs` 로 옵니다. 질문이 없는 회사는 키가 없습니다(계약 §3-20).
