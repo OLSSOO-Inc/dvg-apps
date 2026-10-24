@@ -14,6 +14,8 @@ jobs:
       - run: for f in scenarios/*.json; do python slot_app.py --check "$f"; done
         working-directory: examples/python
       - run: python conformance/check_python.py
+      # 💬 챗봇 연결 웹훅 예제 — 서명 시험 벡터 · 실제 HTTP 요청·응답 모양(표준 라이브러리만).
+      - run: python examples/chatbot-webhook/test_webhook_bot.py
       # 🧪 로컬 DVG 흉내로 예제를 끝까지 돌린다 — 도구와 예제가 서로 어긋나면 여기서 드러난다.
       # 다섯 언어 주문 예제가 **같은 다섯 대화**를 같은 결말로 끝내야 한다(tools/check_order_example.sh) —
       # 무응답 · 주소 좁히기(DVG 질문을 그대로) · 주소 못 알아들음 · 복창 아니요 · 웹 채팅(주문 대신 사람에게).
