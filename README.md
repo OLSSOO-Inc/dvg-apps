@@ -80,6 +80,7 @@ AI 도구는 이 저장소의 [AGENTS.md](AGENTS.md)를 먼저 읽고 그 규칙
 - 🧪 [로컬 DVG 흉내](tools/local_dvg.py) — 앱 키 없이 내 컴퓨터에서 대화 흐름·계약 위반·말투를 점검
 - 📘 [시작하기](docs/getting-started.md) — 등록 받기 · 어디서 돌리나(다른 서버 / DVG 와 같은 서버) · 대화 규칙 · 시험 · 체크리스트
 - 🚀 [실서버 설치 퀵 가이드](docs/deploy-quickstart.md) — 같은 서버(사이드카) · 다른 서버(nginx `wss` + systemd) · 서버 없이(Cloud Run 컨테이너) · 콘솔 HTTPS. 설정 파일은 [`deploy/`](deploy/) 에 있습니다
+- ☁️ [어디에 올릴까 — 플랫폼 고르기](docs/deploy-cloud.md) — 퀵 가이드의 세 경로가 아닌 곳(Fly.io · Render · Cloudflare 터널 등)에 올릴 때 먼저 읽을 것. 무엇이 플랫폼을 가르는지와 어디가 안 되는지
 - 📜 [관리형 음성 레이어 계약 v1](docs/voice-relay-v1.md) — 메시지 · 서명 · 결말 · 상한
 - 🔑 [외부 API 자격증명 · 토큰](docs/external-api-credentials.md) — 키를 어디에 두나 · 토큰 재사용 · 앱을 여러 대로 돌릴 때 · DVG 토큰 중개
 - ✅ [적합성 시험](conformance/) — 서명 시험 벡터(모든 언어가 같은 값을 받아들여야 한다)
