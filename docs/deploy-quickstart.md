@@ -24,6 +24,8 @@ cd dvg-apps
 | 여러분이 준비할 것 | 실행 파일 `run` 과 그것이 쓰는 파일 | 도메인 · 인증서 · nginx | GCP 프로젝트(인증서·TLS 는 Cloud Run 이 맡는다) |
 | 누가 앱을 살려 두나 | DVG(운영사) | 여러분(systemd) | Cloud Run |
 
+⭐ **이 셋이 아닌 곳**(Fly.io · Render · Cloudflare 터널 · AWS 등)에 올리실 거라면 [어디에 올릴까 — 플랫폼 고르기](deploy-cloud.md)를 먼저 보십시오.
+
 **연결 방향을 기억하십시오: DVG 가 앱에 접속합니다.** 다른 서버 경로에서는 앱 서버가 **DVG 서버의 IP 에서 오는 443 접속**을 받아야 합니다.
 콘솔은 반대로 앱 서버에서 **DVG 의 HTTPS 주소로 나갑니다.**
 
