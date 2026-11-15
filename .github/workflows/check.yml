@@ -29,6 +29,8 @@ jobs:
           DVG_SIGNING_SECRET=ci-secret DVG_APP_SCENARIO=examples/python/scenarios/driver.json python examples/python/slot_app.py & APP=$!
           sleep 2
           DVG_SIGNING_SECRET=ci-secret python tools/local_dvg.py --expect completed "강남역" "판교" "자동이요" "네"
+          # 한 사람에게 설치된 앱의 통화(setup.install · 계약 §3-22) — orgId 없이도 같은 결말이어야 한다.
+          DVG_SIGNING_SECRET=ci-secret python tools/local_dvg.py --install fallback --expect completed "강남역" "판교" "자동이요" "네"
           kill "$APP"; wait "$APP" || true
       - name: local_dvg — 꽃 배달 · DVG 답을 적은 파일(주소 좁히기) · --live
         run: |
