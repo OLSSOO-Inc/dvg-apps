@@ -7,7 +7,7 @@ DVG 처럼 서명 헤더를 붙여 앱에 WebSocket 으로 연결하고, 발신�
 ⚠️ 이것은 흉내입니다. 진짜 DVG 와 다른 점(그래서 마지막 확인은 반드시 운영사 DVG 의 `simulate` 로 합니다):
 - 주소 풀이(`expect:"address"`)를 하지 않습니다 — 기본은 `address.status:"unavailable"`(«주소 풀이를 못 쓰는 설치»)입니다.
   DVG 가 줄 답을 **직접 적어** 시험할 수 있습니다(아래 «발화 파일»).
-- 생년월일(`expect:"birth"`)·전화번호(`expect:"phone"`) 풀이를 하지 않습니다(필요하면 역시 직접 적습니다).
+- 생년월일(`expect:"birth"`)·전화번호(`expect:"phone"`)·날짜(`expect:"date"`) 풀이를 하지 않습니다(필요하면 역시 직접 적습니다).
 - 선택지는 **글자가 그대로 들어 있을 때만** 고릅니다(초성 추정 없음 — 초성 추정 결과도 직접 적을 수 있습니다).
 - 문자(`sms`)는 보내지 않고 `sent` 로만 답합니다.
 - 말투 점검은 간이판입니다(쉼표로 이은 나열만 봅니다). 정식 점검은 `simulate` 의 `toneWarning` 입니다.
@@ -90,7 +90,7 @@ OFF_DUTY_STAFF = {
 
 # 발화 파일 객체에 적을 수 있는 키 — 계약 §3-2 의 prompt 필드
 CHOICE_KEYS = {"choice", "choiceIndex", "choiceSource", "confirm", "choiceAmbiguous"}
-SCRIPT_KEYS = {"text", "address", "birth", "image", "lowConfidence", "spokeDuringPlayback", "heardVoice"} | CHOICE_KEYS
+SCRIPT_KEYS = {"text", "address", "birth", "date", "image", "lowConfidence", "spokeDuringPlayback", "heardVoice"} | CHOICE_KEYS
 ADDRESS_STATUS = {"resolved", "ambiguous", "partial", "unknown", "unavailable"}
 
 
@@ -210,10 +210,17 @@ class Session:
                 if not ok:
                     return {"type": "error", "code": "bad_choices", "message": "choices 는 2~6개 · 각 1~20자 · 중복 없음"}, None
             if expect is not None:
-                if expect not in ("address", "phone", "birth"):
-                    return {"type": "error", "code": "bad_expect", "message": "expect 는 address·phone·birth"}, None
+                if expect not in ("address", "phone", "birth", "date"):
+                    return {"type": "error", "code": "bad_expect", "message": "expect 는 address·phone·birth·date"}, None
                 if choices and expect != "birth":
                     return {"type": "error", "code": "bad_expect", "message": "choices 와 expect 는 함께 쓸 수 없다"}, None
+            profile = m.get("dateProfile")
+            if profile is not None:
+                # 계약 §3-23 — dateProfile 은 expect:"date" 와 함께만 · 값은 upcoming·past
+                if expect != "date":
+                    return {"type": "error", "code": "bad_expect", "message": "dateProfile 은 expect:\"date\" 와 함께만"}, None
+                if profile not in ("upcoming", "past"):
+                    return {"type": "error", "code": "bad_expect", "message": "dateProfile 은 upcoming·past"}, None
             keyterms = m.get("keyterms")
             if keyterms is not None:
                 # 계약 §3-19 — 최대 10개 · 각 2~20자 · 중복 없음(앞뒤 공백은 떼고 센다). 힌트 적용 자체는 흉내 내지 않는다.
@@ -253,6 +260,9 @@ class Session:
             if "birth" in scripted and expect != "birth":
                 self.violate("이 발화에 생년월일 답을 적어 두었는데 앱이 expect:\"birth\" 없이 물었다")
                 scripted.pop("birth")
+            if "date" in scripted and expect != "date":
+                self.violate("이 발화에 날짜 답을 적어 두었는데 앱이 expect:\"date\" 없이 물었다")
+                scripted.pop("date")
             if expect == "address" and "address" not in scripted:
                 p["address"] = {"status": "unavailable", "reason": "local_dvg"}  # 적어 두지 않았으면 «풀이를 못 쓰는 설치»
             p.update(scripted)
