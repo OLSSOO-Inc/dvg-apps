@@ -9,6 +9,14 @@
 - 이전 DVG 는 `error bad_expect` — `expect`·`dateProfile` 을 빼고 다시 물으십시오.
 - [`tools/local_dvg.py`](tools/local_dvg.py) 가 `expect:"date"`·`dateProfile` 형식을 DVG 와 같이 검사합니다(날짜 풀이는 하지 않습니다 — 답을 직접 적을 수 있습니다).
 
+## 한 사람에게 설치된 앱 — 문자 · 채팅 (DVG 1.4.18.85+)
+
+- 값의 뜻이 넓어졌습니다(버전 불변 · 계약 §3-22). 한 사람에게 설치된 앱의 통화에서 `sms` 가 **그 사람 번호로** 나갑니다 —
+  운영사가 그 사람에게 문자 발신을 허용하지 않았으면 `unavailable` · `code:"sms_not_allowed"`(1.4.18.84 이하는 늘 `unavailable`).
+- 그 사람의 웹 채팅·카카오톡·네이버 톡톡도 이 앱으로 옵니다(`channel:"chat"` + `install` · `entry` 는 늘 `always` · `visitor` 없음).
+- [`tools/local_dvg.py`](tools/local_dvg.py): `--install` 의 문자 답 코드가 `sms_not_allowed` 로 바뀌었고, `--seat-sms` 를 함께 주면 운영사가 허용한
+  경우(`sent`)를 흉내 냅니다.
+
 ## 한 사람에게 설치된 앱 `setup.install` (DVG 1.4.18.76+)
 
 - 필드 추가(버전 불변). 운영사가 앱을 **한 사람**에게 설치하면 그 사람에게 오는 전화가 앱으로 오고, setup 에
