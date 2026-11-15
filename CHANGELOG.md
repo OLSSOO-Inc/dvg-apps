@@ -2,6 +2,13 @@
 
 필드 추가는 버전을 올리지 않습니다(모르는 필드는 무시). **기존 앱을 깨뜨리는 변경만** 버전을 올립니다.
 
+## 한 사람에게 설치된 앱 `setup.install` (DVG 1.4.18.76+)
+
+- 필드 추가(버전 불변). 운영사가 앱을 **한 사람**에게 설치하면 그 사람에게 오는 전화가 앱으로 오고, setup 에
+  `install {id, kind:"seat", entry}` 가 실립니다(계약 §3-22). `entry` 는 `always`(앱이 먼저) · `fallback`(그 사람이 받지 못해서).
+- 그 통화에는 `orgId`·`departments`·`faqs`·`company`·`staff` 가 없고 `sms` 는 `unavailable` 입니다. `transfer` 는 그 사람에게 갑니다.
+- [`tools/local_dvg.py`](tools/local_dvg.py) 에 `--install always|fallback` — 그런 통화를 흉내 냅니다(`orgId` 없음 · 문자 `unavailable`).
+
 ## 회사 기본정보 `setup.company` (DVG 1.4.17.72+)
 
 - 필드 추가(버전 불변). 운영사가 적은 회사 기본정보(상호·사업자등록번호·전화·팩스·이메일·우편번호·주소·홈페이지·지도·주차·오시는 길·운영 시간)가
