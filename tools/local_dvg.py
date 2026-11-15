@@ -29,7 +29,7 @@ DVG 처럼 서명 헤더를 붙여 앱에 WebSocket 으로 연결하고, 발신�
 주소를 **못 알아들은 경우**를 시험하려면 DVG 가 「주소로 읽지 못함」 이라고 답하게 적습니다([예](calls/address-unknown.json)) —
 적지 않으면 «풀이를 쓸 수 없는 설치» 로 답하므로, 그때 원문을 받는 앱은 「어 그게」 도 배달지로 받습니다.
 
-`--chat`(웹 채팅) · `--off-duty`(근무 시간 밖) · `--install always|fallback`(한 사람에게 설치된 앱 · 계약 §3-22) ·
+`--chat`(웹 채팅) · `--off-duty`(근무 시간 밖) · `--install always|fallback`(한 사람에게 설치된 앱 · 계약 §3-22 · `--seat-sms` 면 문자 허용) ·
 `--setup '{…}'`(setup 에 덧붙일 필드)로 setup 을 바꿀 수 있습니다.
 
 `--live` 를 주면 «시험 통화»(`setup.simulated`) 표시 없이 보냅니다 — 앱이 **실제로 주문을 등록**하는 경로까지 돕니다.
@@ -276,7 +276,7 @@ class Session:
                 return {"type": "error", "code": "text_required", "message": "text_required"}, None
             if getattr(self, "no_sms", False):
                 self.out("✉️ 문자(보낼 수 없음)", t)
-                return {"type": "sms_result", "status": "unavailable", "code": "not_configured"}, None
+                return {"type": "sms_result", "status": "unavailable", "code": "sms_not_allowed"}, None
             self.sms += 1
             try:
                 n = len(t.encode("euc-kr", errors="replace"))
@@ -307,7 +307,7 @@ class Session:
 
 
 async def run(url, app_id, secret, utterances, direction, settings, expect=None, live=False, caller="01000000000",
-              setup_extra=None):
+              setup_extra=None, seat_sms=False):
     call_id = f"{int(time.time())}.local"
     ts = str(int(time.time()))
     headers = {
@@ -316,7 +316,8 @@ async def run(url, app_id, secret, utterances, direction, settings, expect=None,
     }
     s = Session(utterances, direction)
     s.chat = (setup_extra or {}).get("channel") == "chat"
-    s.no_sms = "install" in (setup_extra or {})  # 한 사람에게 설치된 앱의 통화 — 문자를 보낼 수 없다(계약 §3-22)
+    # 한 사람에게 설치된 앱의 통화 — 운영사가 그 사람에게 문자 발신을 허용했을 때만 보낸다(계약 §3-22 · 기본 흉내는 «허용 안 됨»)
+    s.no_sms = "install" in (setup_extra or {}) and not seat_sms
     try:
         ws = await asyncio.wait_for(connect(url, additional_headers=headers), timeout=6)
     except InvalidStatus as e:
@@ -406,7 +407,9 @@ def main():
     ap.add_argument("--off-duty", action="store_true",
                     help="상담원 근무 시간 밖으로 흉내(setup.staff · 계약 §3-15 의 예 그대로)")
     ap.add_argument("--install", choices=["always", "fallback"],
-                    help="한 사람에게 설치된 앱의 통화로 흉내(setup.install · orgId 없음 · 문자 unavailable · 계약 §3-22)")
+                    help="한 사람에게 설치된 앱의 통화로 흉내(setup.install · orgId 없음 · 문자 unavailable sms_not_allowed · 계약 §3-22)")
+    ap.add_argument("--seat-sms", action="store_true",
+                    help="--install 과 함께 — 운영사가 그 사람에게 문자 발신을 허용한 경우로 흉내(문자 sent · DVG 1.4.18.85+)")
     ap.add_argument("--setup", help='setup 에 덧붙일 JSON(계약 §3-2 필드 · 예: \'{"staff":{"onDuty":true}}\')')
     ap.add_argument("--settings", help='설치별 설정 JSON(예: \'{"shopName":"꽃마을"}\')')
     a = ap.parse_args()
@@ -436,7 +439,7 @@ def main():
     if a.live:
         print("⚠️ --live: 시험 통화 표시 없이 보냅니다 — 앱이 실제로 주문을 등록합니다. 앱이 개발용 업무 API 에 붙어 있는지 확인하십시오.\n", flush=True)
     sys.exit(asyncio.run(run(a.url, a.app_id, secret, utter, "outbound" if a.outbound else "inbound",
-                             settings, a.expect, a.live, caller, extra)))
+                             settings, a.expect, a.live, caller, extra, seat_sms=a.seat_sms)))
 
 
 if __name__ == "__main__":
